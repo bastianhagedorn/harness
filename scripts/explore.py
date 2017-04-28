@@ -29,6 +29,8 @@ parser.add_argument('--parameterRewrite', dest='parameterRewrite', action='store
         help='run ParameterRewrite')
 parser.add_argument('--runHarness', dest='runHarness', action='store_true',
         help='run harness recursively')
+parser.add_argument('--runAtf', dest='runAtf', action='store_true',
+        help='run atf recursively')
 parser.add_argument('--gatherTimes', dest='gatherTimes', action='store_true',
         help='gather runtimes in csv')
 parser.add_argument('--plot', dest='plot', action='store_true',
@@ -56,6 +58,7 @@ configParser.read(args.config)
 ### GENERAL
 lift = configParser.get('General', 'Lift')
 executor = configParser.get('General', 'Executor')
+tuner = configParser.get('General', 'Tuner')
 expression = configParser.get('General', 'Expression')
 inputSize = configParser.get('General', 'InputSize')
 name = configParser.get('General', 'Name')
@@ -197,6 +200,17 @@ def runHarness():
     os.system(command)
     os.chdir(explorationDir)
 
+def runAtf():
+    printBlue("\n[INFO] Tuning Kernels with Atf recursively")
+    tunerName = "genericLiftKernel"
+    pathToTuner = tuner + "/" + tunerName
+    shutil.copy2(pathToTuner, expressionCl)
+    os.chdir(expressionCl)
+    # recursively access every subdirectory and execute atf with kernels
+    command = "for d in ./*/ ; do (cp " + tunerName + " \"$d\" && cd \"$d\" && for i in ./*.cl ; do (./"+ tunerName + " \"$i\"" + "); done); done"
+    os.system(command)
+    os.chdir(explorationDir)
+
 def gatherTimes():
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
     os.chdir(expressionCl)
@@ -297,6 +311,7 @@ else:
     if(args.memoryMappingRewrite): memoryMappingRewrite()
     if(args.parameterRewrite): parameterRewrite()
     if(args.runHarness): runHarness()
+    if(args.runAtf): runAtf()
     if(args.gatherTimes): gatherTimes()
     if(args.plot): plot()
     if(args.rewrite): rewrite()
