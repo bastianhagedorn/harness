@@ -47,6 +47,8 @@ parser.add_argument('--removeBlacklist', dest='removeBlacklist', action='store_t
         help='remove blacklisted files to enable re-running things')
 parser.add_argument('config', action='store', default='config',
         help='config file')
+parser.add_argument('--fullAtf', dest='fullAtf', action='store_true',
+        help='run atf recursively')
 args = parser.parse_args()
 
 # CONFIG (PARSER) ##################################################
@@ -113,6 +115,11 @@ if (exploreNDRange == "true")and not (sampleNDRange == ""): parameterRewriteArgs
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
 harnessArgs = " " + configParser.get('Harness', 'Args')
+
+### ATF
+#atf = configParser.get('ATF', 'atf')
+atfCsvHeader = configParser.get('ATF', 'header')
+tunerName = configParser.get('ATF', 'tunerName')  
 
 ### CSV
 #csvHeader = "kernel,time,lsize0,lsize1,lsize2"
@@ -202,12 +209,11 @@ def runHarness():
 
 def runAtf():
     printBlue("\n[INFO] Tuning Kernels with Atf recursively")
-    tunerName = "genericLiftKernel"
     pathToTuner = tuner + "/" + tunerName
     shutil.copy2(pathToTuner, expressionCl)
     os.chdir(expressionCl)
     # recursively access every subdirectory and execute atf with kernels
-    command = "for d in ./*/ ; do (cp " + tunerName + " \"$d\" && cd \"$d\" && for i in ./*.cl ; do (./"+ tunerName + " \"$i\"" + "); done); done"
+    command = "for d in ./*/ ; do (cp " + tunerName + " \"$d\" && cd \"$d\" && for i in *.cl ; do (./"+ tunerName + " \"$i\"" + "); done); done"
     os.system(command)
     os.chdir(explorationDir)
 
@@ -218,6 +224,16 @@ def gatherTimes():
     os.system(command)
     # add header
     addHeader = "sed -i 1i\""+ csvHeader + "\" " + epochTimeCsv
+    os.system(addHeader)
+    os.chdir(explorationDir)
+
+def gatherTimesAtf():
+    printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
+    os.chdir(expressionCl)
+    command = "find . -name \""  +"results.csv"+ "\" | xargs cat >> " + epochTimeCsv
+    os.system(command)
+    # add header
+    addHeader = "sed -i 1i\""+ atfCsvHeader + "\" " + epochTimeCsv
     os.system(addHeader)
     os.chdir(explorationDir)
 
@@ -243,10 +259,26 @@ def execute():
     gatherTimes()
     plot()
 
+def executeAtf():
+    printBlue("[INFO] Execute generated kernels")
+    runAtf()
+    gatherTimesAtf()
+    plot()
+
 def rerun():
     printBlue("[INFO] Rerunning:")
     removeBlacklist()
     execute()
+    printSummary()
+
+def exploreAtf():
+    printBlue("[INFO] Starting exploration -- " + expression)
+    start = time.time()
+    rewrite()
+    executeAtf()
+    end = time.time()
+    elapsed = (end-start)/60
+    printBlue("[INFO] Finished exploration! Took " + str(elapsed) + " minutes to execute")
     printSummary()
 
 def explore():
@@ -311,7 +343,6 @@ else:
     if(args.memoryMappingRewrite): memoryMappingRewrite()
     if(args.parameterRewrite): parameterRewrite()
     if(args.runHarness): runHarness()
-    if(args.runAtf): runAtf()
     if(args.gatherTimes): gatherTimes()
     if(args.plot): plot()
     if(args.rewrite): rewrite()
@@ -319,5 +350,7 @@ else:
     if(args.removeBlacklist): removeBlacklist()
     if(args.rerun): rerun()
     if(args.full): explore()
+    if(args.runAtf): runAtf()
+    if(args.fullAtf): exploreAtf()
 
 os.chdir(currentDir)
