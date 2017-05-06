@@ -94,7 +94,7 @@ class OpenCL {
 				evt.wait();
 				auto time = evt.getProfilingInfo<CL_PROFILING_COMMAND_END>() -
 					    evt.getProfilingInfo<CL_PROFILING_COMMAND_START>();
-				times.push_back(((double)time) / 1000.0 / 1000.0);
+				times.push_back(((double)time));
 				if (times.back() > timeout)
 					break;
 				else if (times.back() > 5 * best_time)

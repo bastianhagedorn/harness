@@ -8,6 +8,8 @@ import shutil
 import time
 import configparser
 import calendar
+import csv
+
 
 ### README ###########################################################
 # Script to start exploration run for a Lift high-level expression
@@ -213,9 +215,11 @@ def runAtf():
     shutil.copy2(pathToTuner, expressionCl)
     os.chdir(expressionCl)
     # recursively access every subdirectory and execute atf with kernels
-    command = "for d in ./*/ ; do (cp " + tunerName + " \"$d\" && cd \"$d\" && for i in *.cl ; do (./"+ tunerName + " \"$i\"" + "); done); done"
+    command = "for d in ./*/ ; do (kernelNumber=1 ; cp " + tunerName + " \"$d\" && cd \"$d\" && for i in *.cl ; do ./"+ tunerName + " \"$i\"" + " ; sed -i \"${kernelNumber}s/$/$i/\" results.csv ; kernelNumber=$[$kernelNumber +1] ; done); done"
     os.system(command)
     os.chdir(explorationDir)
+    gatherTimesAtf()
+    findBestAndWorst()
 
 def gatherTimes():
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
@@ -236,6 +240,62 @@ def gatherTimesAtf():
     addHeader = "sed -i 1i\""+ atfCsvHeader + "\" " + epochTimeCsv
     os.system(addHeader)
     os.chdir(explorationDir)
+    
+
+def findBestAndWorst():
+    printBlue("\n[INFO] Searching best and worst kernel -- " )
+    os.chdir(expressionCl)
+    csvFile= open(epochTimeCsv,"r")
+    #lists for the csv values
+    times = []
+    kernels = []
+    globalSizes =[]
+    localSizes =[]
+    
+    #parsing the csv values
+    reader=csv.reader(csvFile)
+    rownum=0
+    for row in reader:
+        if rownum ==0: header=row
+        else:
+            colnum = 0
+            for col in row:
+                if header[colnum]=="time": times.append(col)
+                if header[colnum]=="kernel": kernels.append(col)
+                if header[colnum]=="GS": globalSizes.append(col)
+                if header[colnum]=="LS": localSizes.append(col)
+                colnum+=1
+            
+        rownum += 1
+            
+    csvFile.close()
+    #find the best and worst kernel
+    index=0
+    bestTime=99999999
+    bestKernel=()
+    worstTime=0;
+    worstKernel=()
+    for time in times:
+        if bestTime > int(time):
+            bestKernel=(kernels[index],int(time),int(globalSizes[index]),int(localSizes[index]))
+            bestTime=int(time)
+        if worstTime < int(time):
+            worstTime=int(time)
+            worstKernel=(kernels[index],int(time),int(globalSizes[index]),int(localSizes[index]))
+        index+=1;
+        
+    print("Best Time:"+str(bestKernel[1])+" Kernel: "+str(bestKernel[0]))
+    print("Worst Time:"+str(worstKernel[1])+" Kernel: "+str(worstKernel[0]))
+    
+    os.chdir(explorationDir)
+    #save best kernel
+    command = "mkdir bestkernel; cd bestkernel; echo \"time: "+str(bestKernel[1])+", GS: "+str(bestKernel[2])+" LS: "+str(bestKernel[3])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel[0]+"' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
+    os.system(command)
+    os.chdir(explorationDir)
+    #save worst kernel
+    command = "mkdir worstkernel; cd worstkernel; echo \"time: "+str(worstKernel[1])+", GS: "+str(worstKernel[2])+" LS: "+str(worstKernel[3])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+worstKernel[0]+"' -exec cp '{}' "+explorationDir+"/worstkernel/kernel.cl \\;" 
+    os.system(command)         
+
 
 def plot():
     printBlue("\n[INFO] Plotting results")
