@@ -263,7 +263,6 @@ def findBestAndWorst():
     reader=csv.reader(csvFile)
     rownum=0
     for row in reader:
-        rows.append(row)
         if rownum ==0: header=row
         else:
             colnum = 0
@@ -274,7 +273,7 @@ def findBestAndWorst():
                 if header[colnum]=="LS": localSizes.append(col)
                 
                 colnum+=1
-            
+            rows.append(row) 
         rownum += 1
             
     csvFile.close()
@@ -282,35 +281,32 @@ def findBestAndWorst():
     index=0
     bestTime=99999999
     bestKernel=()
+    bestKernelIndex=0
+    worstKernelIndex=0
     worstTime=0;
     worstKernel=()
-    globalSize=0
-    localSize=0
+
     
     for time in times:
         if(isfloat(time)):
             if bestTime > float(time):
-                if not globalSizes: globalSize=0
-                else: globalSize= int(globalSizes[index])
-                if not localSizes: localSize=0
-                else: localSize= int(localSizes[index])
-                bestKernel=(kernels[index],float(time), globalSize ,localSize, index)
+                bestKernel=(kernels[index],float(time))
                 bestTime=float(time)
+                bestKernelIndex=index
             if worstTime < float(time):
                 worstTime=float(time)
-                worstKernel=(kernels[index],float(time),globalSize,localSize,index)
+                worstKernel=(kernels[index],float(time))
+                worstKernelIndex=index
             index+=1;
         else:
-            if not globalSizes: globalSize=0
-            else: globalSize= int(globalSizes[index])
-            if not localSizes: localSize=0
-            else: localSize= int(localSizes[index])
             if bestTime > int(time):
-                bestKernel=(kernels[index],int(time),globalSize,localSize,index)
+                bestKernel=(kernels[index],int(time))
                 bestTime=int(time)
+                bestKernelIndex=index
             if worstTime < int(time):
                 worstTime=int(time)
-                worstKernel=(kernels[index],int(time),globalSize,localSize,index)
+                worstKernel=(kernels[index],int(time))
+                worstKernelIndex=index
             index+=1;   
         
     #print("Best Time:"+str(bestKernel[1])+" Kernel: "+str(bestKernel[0]))
@@ -318,7 +314,7 @@ def findBestAndWorst():
    #
     os.chdir(explorationDir)
         #save best kernel
-    command = "mkdir bestkernel; cd bestkernel ;echo \""+str(rows[0])+"\" >> kernelinfo.csv ;echo \""+str(rows[bestKernel[4]])+"\" >> kernelinfo.csv;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel[0]+"*.cl' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
+    command = "mkdir bestkernel; cd bestkernel ;echo \""+str(header)+"\n"+str(rows[bestKernelIndex])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel[0]+"*.cl' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
     os.system(command)
         #save lowelevel expression
     os.chdir(explorationDir+"/bestkernel")
@@ -330,7 +326,7 @@ def findBestAndWorst():
     os.system(command)
     os.chdir(explorationDir)
         #save worst kernel
-    command = "mkdir worstkernel; cd worstkernel; echo \""+str(rows[0])+"\" >> kernelinfo.csv ;echo \""+str(rows[worstKernel[4]])+"\" >> kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+worstKernel[0]+".cl' -exec cp '{}' "+explorationDir+"/worstkernel/kernel.cl \\;" 
+    command = "mkdir worstkernel; cd worstkernel; echo \""+str(header)+"\n"+str(rows[worstKernelIndex])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+worstKernel[0]+".cl' -exec cp '{}' "+explorationDir+"/worstkernel/kernel.cl \\;" 
     os.system(command)  
         #save lowelevel expression
     os.chdir(explorationDir+"/worstkernel")
