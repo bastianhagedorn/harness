@@ -51,6 +51,8 @@ parser.add_argument('config', action='store', default='config',
         help='config file')
 parser.add_argument('--fullAtf', dest='fullAtf', action='store_true',
         help='run atf recursively')
+parser.add_argument('--findKernels', dest='findKernels', action='store_true',
+        help='find the best and worst kernel')
 args = parser.parse_args()
 
 # CONFIG (PARSER) ##################################################
@@ -215,11 +217,11 @@ def runAtf():
     shutil.copy2(pathToTuner, expressionCl)
     os.chdir(expressionCl)
     # recursively access every subdirectory and execute atf with kernels
-    command = "for d in ./*/ ; do (kernelNumber=1 ; cp " + tunerName + " \"$d\" && cd \"$d\" && for i in *.cl ; do ./"+ tunerName + " \"$i\"" + " ; sed -i \"${kernelNumber}s/$/$i/\" results.csv ; kernelNumber=$[$kernelNumber +1] ; done); done"
+    command = "for d in ./*/ ; do (kernelNumber=1 ; cp " + tunerName + " \"$d\" && cd \"$d\" && for i in *.cl ; do ./"+ tunerName + " \"$i\"" + " ; sed -i \"${kernelNumber}s/$/${i%.*}/\" results.csv ; kernelNumber=$[$kernelNumber +1] ; done); done"
     os.system(command)
     os.chdir(explorationDir)
     gatherTimesAtf()
-    findBestAndWorst()
+    
 
 def gatherTimes():
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
@@ -230,6 +232,7 @@ def gatherTimes():
     addHeader = "sed -i 1i\""+ csvHeader + "\" " + epochTimeCsv
     os.system(addHeader)
     os.chdir(explorationDir)
+    
 
 def gatherTimesAtf():
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
@@ -240,6 +243,7 @@ def gatherTimesAtf():
     addHeader = "sed -i 1i\""+ atfCsvHeader + "\" " + epochTimeCsv
     os.system(addHeader)
     os.chdir(explorationDir)
+    
     
 
 def findBestAndWorst():
@@ -275,34 +279,71 @@ def findBestAndWorst():
     bestKernel=()
     worstTime=0;
     worstKernel=()
+    globalSize=0
+    localSize=0
+    
     for time in times:
-        if bestTime > int(time):
-            bestKernel=(kernels[index],int(time),int(globalSizes[index]),int(localSizes[index]))
-            bestTime=int(time)
-        if worstTime < int(time):
-            worstTime=int(time)
-            worstKernel=(kernels[index],int(time),int(globalSizes[index]),int(localSizes[index]))
-        index+=1;
+        if(isfloat(time)):
+            if bestTime > float(time):
+                if not globalSizes: globalSize=0
+                else: globalSize= int(globalSizes[index])
+                if not localSizes: localSize=0
+                else: localSize= int(localSizes[index])
+                bestKernel=(kernels[index],float(time), globalSizes ,localSize)
+                bestTime=float(time)
+            if worstTime < float(time):
+                worstTime=float(time)
+                worstKernel=(kernels[index],float(time),globalSize,localSize)
+            index+=1;
+        else:
+            if not globalSizes: globalSize=0
+            else: globalSize= int(globalSizes[index])
+            if not localSizes: localSize=0
+            else: localSize= int(localSizes[index])
+            if bestTime > int(time):
+                bestKernel=(kernels[index],int(time),globalSizes,localSize)
+                bestTime=int(time)
+            if worstTime < int(time):
+                worstTime=int(time)
+                worstKernel=(kernels[index],int(time),globalSize,localSize)
+            index+=1;   
         
     print("Best Time:"+str(bestKernel[1])+" Kernel: "+str(bestKernel[0]))
     print("Worst Time:"+str(worstKernel[1])+" Kernel: "+str(worstKernel[0]))
-    
+   
     os.chdir(explorationDir)
-    #save best kernel
-    command = "mkdir bestkernel; echo \"time: "+str(bestKernel[1])+", GS: "+str(bestKernel[2])+" LS: "+str(bestKernel[3])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel[0]+"' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
+        #save best kernel
+    command = "mkdir bestkernel; cd bestkernel ;echo \"time: "+str(bestKernel[1])+", GS: "+str(bestKernel[2])+" LS: "+str(bestKernel[3])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel[0]+"*.cl' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
     os.system(command)
+        #save lowelevel expression
     os.chdir(explorationDir+"/bestkernel")
-    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+bestKernel[0].partition("_")[0]+"' -exec cp '{}' "+explorationDir+"/bestkernel/lowlevelexpression/"+bestKernel[0].partition("_")[0]+".low \\;" 
+    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+bestKernel[0].partition("_")[0]+"' -exec cp '{}' "+explorationDir+"/bestkernel/lowlevelexpression/"+bestKernel[0]+".low \\;" 
     os.system(command)
-
     os.chdir(explorationDir)
-    #save worst kernel
-    command = "mkdir worstkernel; cd worstkernel; echo \"time: "+str(worstKernel[1])+", GS: "+str(worstKernel[2])+" LS: "+str(worstKernel[3])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+worstKernel[0]+"' -exec cp '{}' "+explorationDir+"/worstkernel/kernel.cl \\;" 
+        #save worst kernel
+    command = "mkdir worstkernel; cd worstkernel; echo \"time: "+str(worstKernel[1])+", GS: "+str(worstKernel[2])+" LS: "+str(worstKernel[3])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+worstKernel[0]+".cl' -exec cp '{}' "+explorationDir+"/worstkernel/kernel.cl \\;" 
     os.system(command)  
+        #save lowelevel expression
     os.chdir(explorationDir+"/worstkernel")
-    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+worstKernel[0].partition("_")[0]+"' -exec cp '{}' "+explorationDir+"/worstkernel/lowlevelexpression/"+worstKernel[0].partition("_")[0]+".low \\;" 
+    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+worstKernel[0].partition("_")[0]+"' -exec cp '{}' "+explorationDir+"/worstkernel/lowlevelexpression/"+worstKernel[0]+".low \\;" 
     os.system(command)
+    
+def isfloat(x):
+    try:
+        a = float(x)
+    except ValueError:
+        return False
+    else:
+        return True
 
+def isint(x):
+    try:
+        a = float(x)
+        b = int(a)
+    except ValueError:
+        return False
+    else:
+        return a == b
 
 def plot():
     printBlue("\n[INFO] Plotting results")
@@ -419,5 +460,6 @@ else:
     if(args.full): explore()
     if(args.runAtf): runAtf()
     if(args.fullAtf): exploreAtf()
+    if(args.findKernels): findBestAndWorst()
 
 os.chdir(currentDir)
