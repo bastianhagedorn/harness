@@ -253,15 +253,17 @@ def findBestAndWorst():
     os.chdir(expressionCl)
     csvFile= open(epochTimeCsv,"r")
     #lists for the csv values
+    rows=[]
     times = []
     kernels = []
     globalSizes =[]
     localSizes =[]
-    
+    header=0
     #parsing the csv values
     reader=csv.reader(csvFile)
     rownum=0
     for row in reader:
+        rows.append(row)
         if rownum ==0: header=row
         else:
             colnum = 0
@@ -270,6 +272,7 @@ def findBestAndWorst():
                 if header[colnum]=="kernel": kernels.append(col)
                 if header[colnum]=="GS": globalSizes.append(col)
                 if header[colnum]=="LS": localSizes.append(col)
+                
                 colnum+=1
             
         rownum += 1
@@ -291,11 +294,11 @@ def findBestAndWorst():
                 else: globalSize= int(globalSizes[index])
                 if not localSizes: localSize=0
                 else: localSize= int(localSizes[index])
-                bestKernel=(kernels[index],float(time), globalSize ,localSize)
+                bestKernel=(kernels[index],float(time), globalSize ,localSize, index)
                 bestTime=float(time)
             if worstTime < float(time):
                 worstTime=float(time)
-                worstKernel=(kernels[index],float(time),globalSize,localSize)
+                worstKernel=(kernels[index],float(time),globalSize,localSize,index)
             index+=1;
         else:
             if not globalSizes: globalSize=0
@@ -303,11 +306,11 @@ def findBestAndWorst():
             if not localSizes: localSize=0
             else: localSize= int(localSizes[index])
             if bestTime > int(time):
-                bestKernel=(kernels[index],int(time),globalSize,localSize)
+                bestKernel=(kernels[index],int(time),globalSize,localSize,index)
                 bestTime=int(time)
             if worstTime < int(time):
                 worstTime=int(time)
-                worstKernel=(kernels[index],int(time),globalSize,localSize)
+                worstKernel=(kernels[index],int(time),globalSize,localSize,index)
             index+=1;   
         
     #print("Best Time:"+str(bestKernel[1])+" Kernel: "+str(bestKernel[0]))
@@ -315,20 +318,35 @@ def findBestAndWorst():
    #
     os.chdir(explorationDir)
         #save best kernel
-    command = "mkdir bestkernel; cd bestkernel ;echo \"time: "+str(bestKernel[1])+", GS: "+str(bestKernel[2])+" LS: "+str(bestKernel[3])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel[0]+"*.cl' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
+    command = "mkdir bestkernel; cd bestkernel ;echo \""+str(rows[0])+"\" >> kernelinfo.csv ;echo \""+str(rows[bestKernel[4]])+"\" >> kernelinfo.csv;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel[0]+"*.cl' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
     os.system(command)
         #save lowelevel expression
     os.chdir(explorationDir+"/bestkernel")
-    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+bestKernel[0].partition("_")[0]+"' -exec cp '{}' "+explorationDir+"/bestkernel/lowlevelexpression/"+bestKernel[0]+".low \\;" 
+    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/lowlevelexpression/expression.low \\;" 
+    os.system(command)
+        #save highlevel expression
+    os.chdir(explorationDir+"/bestkernel")
+    command = "mkdir highlevelexpression; find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/highlevelexpression/expression.high \\;" 
     os.system(command)
     os.chdir(explorationDir)
         #save worst kernel
-    command = "mkdir worstkernel; cd worstkernel; echo \"time: "+str(worstKernel[1])+", GS: "+str(worstKernel[2])+" LS: "+str(worstKernel[3])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+worstKernel[0]+".cl' -exec cp '{}' "+explorationDir+"/worstkernel/kernel.cl \\;" 
+    command = "mkdir worstkernel; cd worstkernel; echo \""+str(rows[0])+"\" >> kernelinfo.csv ;echo \""+str(rows[worstKernel[4]])+"\" >> kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+worstKernel[0]+".cl' -exec cp '{}' "+explorationDir+"/worstkernel/kernel.cl \\;" 
     os.system(command)  
         #save lowelevel expression
     os.chdir(explorationDir+"/worstkernel")
-    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+worstKernel[0].partition("_")[0]+"' -exec cp '{}' "+explorationDir+"/worstkernel/lowlevelexpression/"+worstKernel[0]+".low \\;" 
+    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/worstkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/worstkernel/lowlevelexpression/expression.low \\;" 
     os.system(command)
+            #save highlevel expression
+    os.chdir(explorationDir+"/worstkernel")
+    command = "mkdir highlevelexpression; find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/worstkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/worstkernel/highlevelexpression/expression.high \\;" 
+    os.system(command)
+    
+def getVariable(filePath,variableName):
+    ffile=open(filePath,'r').read()
+    ini=ffile.find(variableName)+(len(variableName)+1)
+    rest=ffile[ini:]
+    search_enter=rest.find('\n')
+    return rest[:search_enter]
     
 def isfloat(x):
     try:
