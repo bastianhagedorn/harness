@@ -291,7 +291,7 @@ def findBestAndWorst():
                 else: globalSize= int(globalSizes[index])
                 if not localSizes: localSize=0
                 else: localSize= int(localSizes[index])
-                bestKernel=(kernels[index],float(time), globalSizes ,localSize)
+                bestKernel=(kernels[index],float(time), globalSize ,localSize)
                 bestTime=float(time)
             if worstTime < float(time):
                 worstTime=float(time)
@@ -303,7 +303,7 @@ def findBestAndWorst():
             if not localSizes: localSize=0
             else: localSize= int(localSizes[index])
             if bestTime > int(time):
-                bestKernel=(kernels[index],int(time),globalSizes,localSize)
+                bestKernel=(kernels[index],int(time),globalSize,localSize)
                 bestTime=int(time)
             if worstTime < int(time):
                 worstTime=int(time)
