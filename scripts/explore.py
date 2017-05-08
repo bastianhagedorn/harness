@@ -21,6 +21,13 @@ import csv
 
 ### ARGPARSER ########################################################
 parser = argparse.ArgumentParser( description='Lift exploration utility')
+parser.add_argument('--environment', dest='envConf', action='store', default='~/.lift/environment.conf',
+        help='environment config. If there is no such file the mkEnvironemnt.sh will be executed.')
+#parser.add_argument('--portable', dest='isPortable', action='store_true',
+#        help='same as "--environment ../../.lift/environment.conf"')
+parser.add_argument('--noEnvironment', dest='noEnv', action='store_true',
+        help='do not use any environment.conf.')
+
 parser.add_argument('--clean', dest='clean', action='store_true',
         help='clean all generated folders and log-files')
 parser.add_argument('--highLevelRewrite', dest='highLevelRewrite', action='store_true',
@@ -60,15 +67,56 @@ parser.add_argument('config', action='store', default='config',
 args = parser.parse_args()
 
 # CONFIG (PARSER) ##################################################
+# environment config
+def mkEnvironment(path):
+    scriptsDir = os.path.dirname(os.path.realpath(__file__))
+    subprocess.call([scriptsDir+"/mkEnvironment.sh",path])
+
+#check if environment config exists
+#envConf = os.path.abspath(os.path.dirname(os.path.realpath(__file__))+"../../../.lift/environment.conf" if args.isPortable else os.path.expanduser(args.envConf))
+envConf = os.path.abspath(os.path.expanduser(args.envConf))
+print('[INFO] using environment config '+envConf)
+if not args.noEnv:
+    if os.path.exists(envConf):
+        if not os.path.isfile(envConf):
+            sys.exit("[ERROR] environment config already exists but it's not a file.")
+    else:
+        mkEnvironment(envConf)
+        if not os.path.exists(envConf):
+            sys.exit("[ERROR] environment config file was not found and could not be created. You can try the --noEnv flag if you don't want to use it.")
+    envConfigParser = configparser.RawConfigParser()
+    envConfigParser.read(envConf)
+
 # check if config exists
+print('[INFO] using explore config '+args.config)
 if not os.path.exists(args.config): sys.exit("[ERROR] config file not found!")
 configParser = configparser.RawConfigParser()
 configParser.read(args.config)
 
+
+
+### ENVIRONMENT
+if not args.noEnv:
+    lift=envConfigParser.get('Path','Lift')
+    executor=envConfigParser.get('Path','Executor')
+    tuner=envConfigParser.get('Path','Tuner')
+    Rscript=envConfigParser.get('Path','Rscript')
+    
+    clPlattform=envConfigParser.get('OpenCl','Platform')
+    clDevice=envConfigParser.get('OpenCl','Device')
+    
+else: # if there is no environment.conf
+    # GENERAL
+    lift = configParser.get('General', 'Lift')
+    executor = configParser.get('General', 'Executor')
+    #tuner = configParser.get('General', 'Tuner')
+    # R
+    Rscript = configParser.get('R', 'Script')
+    # openCL
+    clPlattform=None
+    clDevice=None
+
 ### GENERAL
-lift = configParser.get('General', 'Lift')
-executor = configParser.get('General', 'Executor')
-tuner = configParser.get('General', 'Tuner')
 expression = configParser.get('General', 'Expression')
 inputSize = configParser.get('General', 'InputSize')
 name = configParser.get('General', 'Name')
@@ -123,6 +171,10 @@ if (exploreNDRange == "true")and not (sampleNDRange == ""): parameterRewriteArgs
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
 harnessArgs = " " + configParser.get('Harness', 'Args')
+if clPlattform is not None:
+    harnessArgs += ' -d ' + clPlattform
+if clDevice is not None:
+    harnessArgs += ' -p ' + clDevice
 
 ### ATF
 #atf = configParser.get('ATF', 'atf')
@@ -137,7 +189,6 @@ timeCsv = "time_" + inputSize + ".csv"
 blacklistCsv = "blacklist_" + inputSize + ".csv"
 
 ### R
-Rscript = configParser.get('R', 'Script')
 output = expression + "_" + inputSize +  "_" + name + ".pdf"
 RscriptArgs = " --file " + epochTimeCsv + " --out " + output
 
@@ -211,6 +262,7 @@ def runHarness():
     shutil.copy2(pathToHarness, expressionCl)
     os.chdir(expressionCl)
     # recursively access every subdirectory and execute harness with harnessArgs
+    
     command = "for d in ./*/ ; do (cp " + harness + " \"$d\" && cd \"$d\" && ./"+ harness + harnessArgs + "); done"
     os.system(command)
     os.chdir(explorationDir)
