@@ -33,6 +33,14 @@ parser.add_argument('--runHarness', dest='runHarness', action='store_true',
         help='run harness recursively')
 parser.add_argument('--runAtf', dest='runAtf', action='store_true',
         help='run atf recursively')
+parser.add_argument('--executeAtf', dest='executeAtf', action='store_true',
+        help='execute with atf and plot results')
+parser.add_argument('--fullAtf', dest='fullAtf', action='store_true',
+        help='run atf recursively')
+parser.add_argument('--findKernels', dest='findKernels', action='store_true',
+        help='find the best and worst kernel')
+parser.add_argument('--gatherTimesAtf', dest='gatherTimesAtf', action='store_true',
+        help='gather runtimes in csv')
 parser.add_argument('--gatherTimes', dest='gatherTimes', action='store_true',
         help='gather runtimes in csv')
 parser.add_argument('--plot', dest='plot', action='store_true',
@@ -49,12 +57,6 @@ parser.add_argument('--removeBlacklist', dest='removeBlacklist', action='store_t
         help='remove blacklisted files to enable re-running things')
 parser.add_argument('config', action='store', default='config',
         help='config file')
-parser.add_argument('--fullAtf', dest='fullAtf', action='store_true',
-        help='run atf recursively')
-parser.add_argument('--findKernels', dest='findKernels', action='store_true',
-        help='find the best and worst kernel')
-parser.add_argument('--gatherTimesAtf', dest='gatherTimesAtf', action='store_true',
-        help='find the best and worst kernel')
 args = parser.parse_args()
 
 # CONFIG (PARSER) ##################################################
@@ -222,8 +224,6 @@ def runAtf():
     command = "for d in ./*/ ; do (kernelNumber=1 ; cp " + tunerName + " \"$d\" && cd \"$d\" && for i in *.cl ; do ./"+ tunerName + " \"$i\"" + " ; sed -i \"${kernelNumber}s/$/${i%.*}/\" results.csv ; kernelNumber=$[$kernelNumber +1] ; done); done"
     os.system(command)
     os.chdir(explorationDir)
-    gatherTimesAtf()
-    
 
 def gatherTimes():
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
@@ -234,7 +234,6 @@ def gatherTimes():
     addHeader = "sed -i 1i\""+ csvHeader + "\" " + epochTimeCsv
     os.system(addHeader)
     os.chdir(explorationDir)
-    
 
 def gatherTimesAtf():
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
@@ -245,8 +244,6 @@ def gatherTimesAtf():
     addHeader = "sed -i 1i\""+ atfCsvHeader + "\" " + epochTimeCsv
     os.system(addHeader)
     os.chdir(explorationDir)
-    
-    
 
 def findBestAndWorst():
     printBlue("\n[INFO] Searching best and worst kernel -- " )
@@ -467,6 +464,7 @@ else:
     if(args.rerun): rerun()
     if(args.full): explore()
     if(args.runAtf): runAtf()
+    if(args.executeAtf): runAtf()
     if(args.fullAtf): exploreAtf()
     if(args.findKernels): findBestAndWorst()
     if(args.gatherTimesAtf): gatherTimesAtf()
