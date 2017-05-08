@@ -289,12 +289,19 @@ def findBestAndWorst():
     
     os.chdir(explorationDir)
     #save best kernel
-    command = "mkdir bestkernel; cd bestkernel; echo \"time: "+str(bestKernel[1])+", GS: "+str(bestKernel[2])+" LS: "+str(bestKernel[3])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel[0]+"' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
+    command = "mkdir bestkernel; echo \"time: "+str(bestKernel[1])+", GS: "+str(bestKernel[2])+" LS: "+str(bestKernel[3])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel[0]+"' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
     os.system(command)
+    os.chdir(explorationDir+"/bestkernel")
+    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+bestKernel[0].partition("_")[0]+"' -exec cp '{}' "+explorationDir+"/bestkernel/lowlevelexpression/"+bestKernel[0].partition("_")[0]+".low \\;" 
+    os.system(command)
+
     os.chdir(explorationDir)
     #save worst kernel
     command = "mkdir worstkernel; cd worstkernel; echo \"time: "+str(worstKernel[1])+", GS: "+str(worstKernel[2])+" LS: "+str(worstKernel[3])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+worstKernel[0]+"' -exec cp '{}' "+explorationDir+"/worstkernel/kernel.cl \\;" 
-    os.system(command)         
+    os.system(command)  
+    os.chdir(explorationDir+"/worstkernel")
+    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+worstKernel[0].partition("_")[0]+"' -exec cp '{}' "+explorationDir+"/worstkernel/lowlevelexpression/"+worstKernel[0].partition("_")[0]+".low \\;" 
+    os.system(command)
 
 
 def plot():
