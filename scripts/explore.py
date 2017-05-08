@@ -53,6 +53,8 @@ parser.add_argument('--fullAtf', dest='fullAtf', action='store_true',
         help='run atf recursively')
 parser.add_argument('--findKernels', dest='findKernels', action='store_true',
         help='find the best and worst kernel')
+parser.add_argument('--gatherTimesAtf', dest='gatherTimesAtf', action='store_true',
+        help='find the best and worst kernel')
 args = parser.parse_args()
 
 # CONFIG (PARSER) ##################################################
@@ -308,9 +310,9 @@ def findBestAndWorst():
                 worstKernel=(kernels[index],int(time),globalSize,localSize)
             index+=1;   
         
-    print("Best Time:"+str(bestKernel[1])+" Kernel: "+str(bestKernel[0]))
-    print("Worst Time:"+str(worstKernel[1])+" Kernel: "+str(worstKernel[0]))
-   
+    #print("Best Time:"+str(bestKernel[1])+" Kernel: "+str(bestKernel[0]))
+    #print("Worst Time:"+str(worstKernel[1])+" Kernel: "+str(worstKernel[0]))
+   #
     os.chdir(explorationDir)
         #save best kernel
     command = "mkdir bestkernel; cd bestkernel ;echo \"time: "+str(bestKernel[1])+", GS: "+str(bestKernel[2])+" LS: "+str(bestKernel[3])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel[0]+"*.cl' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
@@ -336,14 +338,6 @@ def isfloat(x):
     else:
         return True
 
-def isint(x):
-    try:
-        a = float(x)
-        b = int(a)
-    except ValueError:
-        return False
-    else:
-        return a == b
 
 def plot():
     printBlue("\n[INFO] Plotting results")
@@ -461,5 +455,6 @@ else:
     if(args.runAtf): runAtf()
     if(args.fullAtf): exploreAtf()
     if(args.findKernels): findBestAndWorst()
+    if(args.gatherTimesAtf): gatherTimesAtf()
 
 os.chdir(currentDir)
