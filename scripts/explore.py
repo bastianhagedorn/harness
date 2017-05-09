@@ -9,6 +9,7 @@ import time
 import configparser
 import calendar
 import csv
+ 
 
 
 ### README ###########################################################
@@ -220,10 +221,32 @@ def runAtf():
     pathToTuner = tuner + "/" + tunerName
     shutil.copy2(pathToTuner, expressionCl)
     os.chdir(expressionCl)
+    #search kernel folders
+    for fileName in os.listdir(explorationDir+"/"+expressionCl):
+        os.chdir(explorationDir+"/"+expressionCl)
+        if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
+            os.chdir(fileName)
+            #copy tuner to the folder
+            shutil.copy2(pathToTuner, explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName)
+            #run atf with every kernel in the folder
+            currentKernelNumber=1;
+            for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
+                if fn.endswith(".cl"):
+                    atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
+                    p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg])
+                    p.wait()
+                    addKernelName = "sed -i \""+str(currentKernelNumber)+"s/$/"+str(fn.partition(".")[0])+"/\" results.csv"
+                    os.system(addKernelName)
+                    currentKernelNumber+=1
+                    
+                
+                    
+            
+            
     # recursively access every subdirectory and execute atf with kernels
-    command = "for d in ./*/ ; do (kernelNumber=1 ; cp " + tunerName + " \"$d\" && cd \"$d\" && for i in *.cl ; do ./"+ tunerName + " \"$i\"" + " ; sed -i \"${kernelNumber}s/$/${i%.*}/\" results.csv ; kernelNumber=$[$kernelNumber +1] ; done); done"
-    os.system(command)
-    os.chdir(explorationDir)
+    #command = "for d in ./*/ ; do (kernelNumber=1 ; cp " + tunerName + " \"$d\" && cd \"$d\" && for i in *.cl ; do ./"+ tunerName + " \"$i\"" + " ; sed -i \"${kernelNumber}s/$/${i%.*}/\" results.csv ; kernelNumber=$[$kernelNumber +1] ; done); done"
+    #os.system(command)
+    #os.chdir(explorationDir)
 
 def gatherTimes():
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
