@@ -73,7 +73,6 @@ def mkEnvironment(path):
     subprocess.call([scriptsDir+"/mkEnvironment.sh",path])
 
 #check if environment config exists
-#envConf = os.path.abspath(os.path.dirname(os.path.realpath(__file__))+"../../../.lift/environment.conf" if args.isPortable else os.path.expanduser(args.envConf))
 envConf = os.path.abspath(os.path.expanduser(args.envConf))
 print('[INFO] using environment config '+envConf)
 if not args.noEnv:
@@ -89,9 +88,10 @@ if not args.noEnv:
 
 # check if config exists
 print('[INFO] using explore config '+args.config)
-if not os.path.exists(args.config): sys.exit("[ERROR] config file not found!")
+configPath = os.path.expanduser(args.config)
+if not os.path.exists(configPath): sys.exit("[ERROR] config file not found!")
 configParser = configparser.RawConfigParser()
-configParser.read(args.config)
+configParser.read(configPath)
 
 
 
@@ -109,12 +109,18 @@ else: # if there is no environment.conf
     # GENERAL
     lift = configParser.get('General', 'Lift')
     executor = configParser.get('General', 'Executor')
-    #tuner = configParser.get('General', 'Tuner')
+    tuner = configParser.get('General', 'Tuner')
     # R
     Rscript = configParser.get('R', 'Script')
     # openCL
-    clPlattform=None
-    clDevice=None
+    clPlattform=""
+    clDevice=""
+    
+lift = os.path.normpath(lift)
+executor = os.path.normpath(executor)
+tuner = os.path.normpath(tuner)
+Rscript = os.path.normpath(Rscript)
+
 
 ### GENERAL
 expression = configParser.get('General', 'Expression')
@@ -162,7 +168,7 @@ exploreNDRange = configParser.get('ParameterRewrite', 'ExploreNDRange')
 sampleNDRange = configParser.get('ParameterRewrite', 'SampleNDRange')
 disableNDRangeInjection = configParser.get('ParameterRewrite', 'DisableNDRangeInjection')
 sequential = configParser.get('ParameterRewrite', 'Sequential')
-parameterRewriteArgs = " --file " + lift + "highLevel/" + settings 
+parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
 if(sequential == "true"): parameterRewriteArgs += " --sequential"
 if(disableNDRangeInjection == "true"): parameterRewriteArgs += " --disableNDRangeInjection"
 if(exploreNDRange == "true"): parameterRewriteArgs += " --exploreNDRange"
@@ -171,10 +177,10 @@ if (exploreNDRange == "true")and not (sampleNDRange == ""): parameterRewriteArgs
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
 harnessArgs = " " + configParser.get('Harness', 'Args')
-if clPlattform is not None:
-    harnessArgs += ' -d ' + clPlattform
-if clDevice is not None:
-    harnessArgs += ' -p ' + clDevice
+if clPlattform != "":
+    harnessArgs += ' -p ' + clPlattform
+if clDevice != "":
+    harnessArgs += ' -d ' + clDevice
 
 ### ATF
 #atf = configParser.get('ATF', 'atf')
@@ -198,7 +204,7 @@ explorationDir = currentDir + "/" + name
 expressionLower = expression + "Lower"
 expressionCl = expression + "Cl"
 plotsDir = "plots"
-scriptsDir = lift + "scripts/compiled_scripts/"
+scriptsDir = lift + "/scripts/compiled_scripts/"
 
 # HELPER FUNCTIONS #################################################
 def printBlue( string ):
@@ -245,7 +251,7 @@ def callExplorationStage(rewrite, args):
     subprocess.call([scriptsDir + rewrite, args])
 
 def highLevelRewrite():
-    args = highLevelRewriteArgs + " " + lift + "highLevel/" + expression
+    args = highLevelRewriteArgs + " " + lift + "/highLevel/" + expression
     callExplorationStage("HighLevelRewrite", args)
 
 def memoryMappingRewrite():
