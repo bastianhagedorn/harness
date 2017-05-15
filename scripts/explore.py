@@ -9,6 +9,7 @@ import time
 import configparser
 import calendar
 import csv
+import sys
  
 
 
@@ -63,6 +64,8 @@ parser.add_argument('--rerun', dest='rerun', action='store_true',
         help='removeBlacklist + execute')
 parser.add_argument('--removeBlacklist', dest='removeBlacklist', action='store_true',
         help='remove blacklisted files to enable re-running things')
+parser.add_argument('--silentExecution', dest='silentExecution', action='store_true',
+        help='run the execution without output')
 parser.add_argument('config', action='store', default='config',
         help='config file')
 args = parser.parse_args()
@@ -177,7 +180,7 @@ if (exploreNDRange == "true")and not (sampleNDRange == ""): parameterRewriteArgs
 
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
-harnessArgs = " " + configParser.get('Harness', 'Args')
+harnessArgs = "" + configParser.get('Harness', 'Args')
 if clPlattform != "":
     harnessArgs += ' -p ' + clPlattform
 if clDevice != "":
@@ -265,20 +268,57 @@ def parameterRewrite():
 
 def runHarness():
     printBlue("\n[INFO] Running Harness recursively")
-    pathToHarness = executor + "/build/" + harness
-    shutil.copy2(pathToHarness, expressionCl)
-    os.chdir(expressionCl)
-    # recursively access every subdirectory and execute harness with harnessArgs
     
-    command = "for d in ./*/ ; do (cp " + harness + " \"$d\" && cd \"$d\" && ./"+ harness + harnessArgs + "); done"
-    os.system(command)
-    os.chdir(explorationDir)
+    silent = bool(False)
+    if(args.silentExecution): 
+        silent = bool(True)
+        printBlue("\n[INFO] Running in silent mode")
+    
+    pathToHarness = executor + "/build/" + harness
+    #redirecting stdout of subprocesses to fnull
+    FNULL = open(os.devnull, 'w')
+    os.chdir(explorationDir +"/"+ expressionCl)
+    
+    kernelNumber = countGeneratedKernels()        
+    executedKernels =1 
+    # recursively access every subdirectory and execute harness with harnessArgs
+    for fileName in os.listdir(explorationDir+"/"+expressionCl):
+        os.chdir(explorationDir+"/"+expressionCl)
+        if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
+            os.chdir(fileName)
+            #copy tuner to the folder
+            shutil.copy2(pathToHarness, explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness)
+            #run harness with every kernel in the folder
+            for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
+                if fn.endswith(".cl"):
+                    if silent:
+                        sys.stdout.write("Progress: {}/{}   \r".format(executedKernels,kernelNumber) )
+                        sys.stdout.flush()
+                        p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness+" "+harnessArgs], shell=True,stdout=FNULL, stderr=subprocess.STDOUT)
+                    else:
+                        p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness+" "+harnessArgs], shell=True)
+                   
+                    p.wait()
+                    executedKernels+=1
+    
+    #command = "for d in ./*/ ; do (cp " + harness + " \"$d\" && cd \"$d\" && ./"+ harness + harnessArgs + "); done"
+    #os.system(command)
+    #os.chdir(explorationDir)
 
 def runAtf():
     printBlue("\n[INFO] Tuning Kernels with Atf recursively")
+    silent = bool(False)
+    if(args.silentExecution): 
+        silent = bool(True)
+        printBlue("\n[INFO] Running in silent mode")
+    
+    #redirecting stdout of subprocesses to fnull
+    FNULL = open(os.devnull, 'w')
     pathToTuner = tuner + "/" + tunerName
-    shutil.copy2(pathToTuner, expressionCl)
     os.chdir(explorationDir +"/"+ expressionCl)
+    
+    kernelNumber = countGeneratedKernels()         
+    executedKernels =0         
     #search kernel folders
     for fileName in os.listdir(explorationDir+"/"+expressionCl):
         os.chdir(explorationDir+"/"+expressionCl)
@@ -290,18 +330,38 @@ def runAtf():
             currentKernelNumber=1;
             for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
                 if fn.endswith(".cl"):
-                    atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
-                    p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg])
+                    if(silent):
+                        sys.stdout.write("Progress: {}/{}   \r".format(executedKernels,kernelNumber) )
+                        sys.stdout.flush()
+                        atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
+                        p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg],stdout=FNULL, stderr=subprocess.STDOUT)
+
+                    else:
+                        atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
+                        p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg])
                     p.wait()
                     addKernelNameToRow = "sed -i \""+str(currentKernelNumber)+"s/$/"+str(fn.partition(".")[0])+"/\" results.csv"
                     os.system(addKernelNameToRow)
                     currentKernelNumber+=1
+                    executedKernels+=1
    
 
+def countGeneratedKernels():
+    kernelNumber =0
+    os.chdir(explorationDir +"/"+ expressionCl)
+    ##count the number of generated kernels
+    for fileName in os.listdir(explorationDir+"/"+expressionCl):
+        os.chdir(explorationDir+"/"+expressionCl)
+        if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
+            os.chdir(fileName)
+            for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
+                if fn.endswith(".cl"):
+                    kernelNumber +=1
+    return kernelNumber
 
 def gatherTimes():
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
-    os.chdir(expressionCl)
+    os.chdir(explorationDir+"/"+expressionCl)
     command = "find . -name \"" + timeCsv + "\" | xargs cat >> " + epochTimeCsv
     os.system(command)
     # add header
@@ -347,40 +407,38 @@ def findBestAndWorst():
     #find the best and worst kernel
     index=0
     bestTime=99999999
-    bestKernel=()
+    bestKernel="null"
     bestKernelIndex=0
     worstKernelIndex=0
     worstTime=0;
-    worstKernel=()
+    worstKernel="null"
 
     for time in times:
         if(isfloat(time)):
             if bestTime > float(time):
-                bestKernel=(kernels[index],float(time))
+                bestKernel=kernels[index]
                 bestTime=float(time)
                 bestKernelIndex=index
             if worstTime < float(time):
                 worstTime=float(time)
-                worstKernel=(kernels[index],float(time))
+                worstKernel=kernels[index]
                 worstKernelIndex=index
             index+=1;
         else:
             if bestTime > int(time):
-                bestKernel=(kernels[index],int(time))
+                bestKernel=kernels[index]
                 bestTime=int(time)
                 bestKernelIndex=index
             if worstTime < int(time):
                 worstTime=int(time)
-                worstKernel=(kernels[index],int(time))
+                worstKernel=kernels[index]
                 worstKernelIndex=index
             index+=1;   
         
-    #print("Best Time:"+str(bestKernel[1])+" Kernel: "+str(bestKernel[0]))
-    #print("Worst Time:"+str(worstKernel[1])+" Kernel: "+str(worstKernel[0]))
-   #
+
     os.chdir(explorationDir)
         #save best kernel
-    command = "mkdir bestkernel; cd bestkernel ;echo \""+str(header)+"\n"+str(rows[bestKernelIndex])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel[0]+"*.cl' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
+    command = "mkdir bestkernel; cd bestkernel ;echo \""+str(header)+"\n"+str(rows[bestKernelIndex])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel+"*.cl' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
     os.system(command)
         #save lowelevel expression
     os.chdir(explorationDir+"/bestkernel")
@@ -392,7 +450,7 @@ def findBestAndWorst():
     os.system(command)
     os.chdir(explorationDir)
         #save worst kernel
-    command = "mkdir worstkernel; cd worstkernel; echo \""+str(header)+"\n"+str(rows[worstKernelIndex])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+worstKernel[0]+".cl' -exec cp '{}' "+explorationDir+"/worstkernel/kernel.cl \\;" 
+    command = "mkdir worstkernel; cd worstkernel; echo \""+str(header)+"\n"+str(rows[worstKernelIndex])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+worstKernel+".cl' -exec cp '{}' "+explorationDir+"/worstkernel/kernel.cl \\;" 
     os.system(command)  
         #save lowelevel expression
     os.chdir(explorationDir+"/worstkernel")
