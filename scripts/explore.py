@@ -384,11 +384,11 @@ def findBestAndWorst():
     os.system(command)
         #save lowelevel expression
     os.chdir(explorationDir+"/bestkernel")
-    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/lowlevelexpression/expression.low \\;" 
+    command = "find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/expression.low \\;" 
     os.system(command)
         #save highlevel expression
     os.chdir(explorationDir+"/bestkernel")
-    command = "mkdir highlevelexpression; find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/highlevelexpression/expression.high \\;" 
+    command = "find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/expression.high \\;" 
     os.system(command)
     os.chdir(explorationDir)
         #save worst kernel
@@ -396,11 +396,11 @@ def findBestAndWorst():
     os.system(command)  
         #save lowelevel expression
     os.chdir(explorationDir+"/worstkernel")
-    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/worstkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/worstkernel/lowlevelexpression/expression.low \\;" 
+    command = "find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/worstkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/worstkernel/expression.low \\;" 
     os.system(command)
             #save highlevel expression
     os.chdir(explorationDir+"/worstkernel")
-    command = "mkdir highlevelexpression; find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/worstkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/worstkernel/highlevelexpression/expression.high \\;" 
+    command = "find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/worstkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/worstkernel/expression.high \\;" 
     os.system(command)
     saveExplorationMetaInformation()
     
@@ -503,7 +503,7 @@ def saveExplorationMetaInformation():
     
     
     saveMetadataHeader = "echo \"explorationTime,kernelNumber,allExecutions,validExecutions,liftBramch,currentLiftCommit,arithExprBranch,currentArithExprCommit,harnessBranch,currentHarnessCommit\" >> metaData.csv"
-    saveExplorationTime = "echo \""+str(explorationLength)+",$("+kernelNumber+"),$("+allExecutions+"),$("+validExecutions+"),$("+liftBranch+"),$("+liftCommit+"),$("+arithExpBranch+"),$("+arithExpCommit+"),$("+harnessBranch+"),$("+harnessCommit+")\" >> metaData.csv"
+    saveExplorationTime = "echo \""+str(explorationLength)+",$("+kernelNumber+"),$("+allExecutions+"),$("+validExecutions+"),$("+liftBranch+"),$("+liftCommit+"),$("+arithExpBranch+"),$("+arithExpCommit+"),$("+harnessBranch+"),$("+harnessCommit+")\" >> metadata.csv"
     os.system(saveMetadataHeader)
     os.system(saveExplorationTime)
     
