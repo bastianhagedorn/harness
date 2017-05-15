@@ -402,6 +402,7 @@ def findBestAndWorst():
     os.chdir(explorationDir+"/worstkernel")
     command = "mkdir highlevelexpression; find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/worstkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/worstkernel/highlevelexpression/expression.high \\;" 
     os.system(command)
+    saveExplorationMetaInformation()
     
 def getVariable(filePath,variableName):
     ffile=open(filePath,'r').read()
@@ -452,6 +453,9 @@ def rerun():
     removeBlacklist()
     execute()
     printSummary()
+    
+#global exploration length in mins
+explorationLength = 0
 
 def exploreAtf():
     printBlue("[INFO] Starting exploration -- " + expression)
@@ -460,8 +464,11 @@ def exploreAtf():
     executeAtf()
     end = time.time()
     elapsed = (end-start)/60
+    global explorationLength
+    explorationLength = elapsed
     printBlue("[INFO] Finished exploration! Took " + str(elapsed) + " minutes to execute")
     printSummary()
+    findBestAndWorst()
 
 def explore():
     printBlue("[INFO] Starting exploration -- " + expression)
@@ -470,13 +477,35 @@ def explore():
     execute()
     end = time.time()
     elapsed = (end-start)/60
+    global explorationLength
+    explorationLength = elapsed
     printBlue("[INFO] Finished exploration! Took " + str(elapsed) + " minutes to execute")
     printSummary()
+    findBestAndWorst()
 
 def printOccurences(name):
     print(bcolors.BLUE + "[INFO] " + name + ": " + bcolors.ENDC, end='', flush=True)
     find = "find . -name \"" + name + "_" + inputSize + ".csv\" | xargs cat | wc -l"
     os.system(find)
+    
+def saveExplorationMetaInformation():
+    global explorationLength
+    os.chdir(explorationDir+"/bestkernel")
+    kernelNumber = "cd "+explorationDir+"/"+expressionCl+";  ls */*.cl | wc -l"
+    validExecutions = "find . -name \"" + timeCsv + "\" | xargs cat | wc -l"
+    allExecutions = "find . -name \"exec_" + inputSize + ".csv\" | xargs cat | wc -l"
+    liftBranch = "cd "+lift+" ; git branch | grep -e \"^*\" | cut -d' ' -f 2-"
+    liftCommit = "cd "+lift+" ; git rev-parse HEAD"
+    arithExpBranch = "cd "+lift+"/lib/ArithExpr ;  git branch | grep -e \"^*\" | cut -d' ' -f 2-"
+    arithExpCommit = "cd "+lift+"/lib/ArithExpr  ; git rev-parse HEAD"
+    harnessBranch = "cd "+executor+" ; git branch | grep -e \"^*\" | cut -d' ' -f 2-"
+    harnessCommit = "cd "+executor+" ; git rev-parse HEAD"
+    
+    
+    saveMetadataHeader = "echo \"explorationTime,kernelNumber,allExecutions,validExecutions,liftBramch,currentLiftCommit,arithExprBranch,currentArithExprCommit,harnessBranch,currentHarnessCommit\" >> metaData.csv"
+    saveExplorationTime = "echo \""+str(explorationLength)+",$("+kernelNumber+"),$("+allExecutions+"),$("+validExecutions+"),$("+liftBranch+"),$("+liftCommit+"),$("+arithExpBranch+"),$("+arithExpCommit+"),$("+harnessBranch+"),$("+harnessCommit+")\" >> metaData.csv"
+    os.system(saveMetadataHeader)
+    os.system(saveExplorationTime)
     
 def printSummary():
     #print how many executed runs there are
