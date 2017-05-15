@@ -278,7 +278,7 @@ def runAtf():
     printBlue("\n[INFO] Tuning Kernels with Atf recursively")
     pathToTuner = tuner + "/" + tunerName
     shutil.copy2(pathToTuner, expressionCl)
-    os.chdir(expressionCl)
+    os.chdir(explorationDir +"/"+ expressionCl)
     #search kernel folders
     for fileName in os.listdir(explorationDir+"/"+expressionCl):
         os.chdir(explorationDir+"/"+expressionCl)
@@ -293,18 +293,11 @@ def runAtf():
                     atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
                     p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg])
                     p.wait()
-                    addKernelName = "sed -i \""+str(currentKernelNumber)+"s/$/"+str(fn.partition(".")[0])+"/\" results.csv"
-                    os.system(addKernelName)
+                    addKernelNameToRow = "sed -i \""+str(currentKernelNumber)+"s/$/"+str(fn.partition(".")[0])+"/\" results.csv"
+                    os.system(addKernelNameToRow)
                     currentKernelNumber+=1
-                    
-                
-                    
-            
-            
-    # recursively access every subdirectory and execute atf with kernels
-    #command = "for d in ./*/ ; do (kernelNumber=1 ; cp " + tunerName + " \"$d\" && cd \"$d\" && for i in *.cl ; do ./"+ tunerName + " \"$i\"" + " ; sed -i \"${kernelNumber}s/$/${i%.*}/\" results.csv ; kernelNumber=$[$kernelNumber +1] ; done); done"
-    #os.system(command)
-    #os.chdir(explorationDir)
+   
+
 
 def gatherTimes():
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
@@ -318,7 +311,7 @@ def gatherTimes():
 
 def gatherTimesAtf():
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
-    os.chdir(expressionCl)
+    os.chdir(explorationDir+"/"+expressionCl)
     command = "find . -name \""  +"results.csv"+ "\" | xargs cat >> " + epochTimeCsv
     os.system(command)
     # add header
@@ -328,14 +321,12 @@ def gatherTimesAtf():
 
 def findBestAndWorst():
     printBlue("\n[INFO] Searching best and worst kernel -- " )
-    os.chdir(expressionCl)
+    os.chdir(explorationDir+"/"+expressionCl)
     csvFile= open(epochTimeCsv,"r")
     #lists for the csv values
     rows=[]
     times = []
     kernels = []
-    globalSizes =[]
-    localSizes =[]
     header=0
     #parsing the csv values
     reader=csv.reader(csvFile)
@@ -347,8 +338,6 @@ def findBestAndWorst():
             for col in row:
                 if header[colnum]=="time": times.append(col)
                 if header[colnum]=="kernel": kernels.append(col)
-                if header[colnum]=="GS": globalSizes.append(col)
-                if header[colnum]=="LS": localSizes.append(col)
                 
                 colnum+=1
             rows.append(row) 
@@ -364,7 +353,6 @@ def findBestAndWorst():
     worstTime=0;
     worstKernel=()
 
-    
     for time in times:
         if(isfloat(time)):
             if bestTime > float(time):
