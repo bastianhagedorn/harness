@@ -272,7 +272,7 @@ def runHarness():
     silent = bool(False)
     if(args.silentExecution): 
         silent = bool(True)
-        printBlue("\n[INFO] Running in silent mode")
+        printBlue("[INFO] Running in silent mode\n")
     
     pathToHarness = executor + "/build/" + harness
     #redirecting stdout of subprocesses to fnull
@@ -310,7 +310,7 @@ def runAtf():
     silent = bool(False)
     if(args.silentExecution): 
         silent = bool(True)
-        printBlue("\n[INFO] Running in silent mode")
+        printBlue("[INFO] Running in silent mode\n")
     
     #redirecting stdout of subprocesses to fnull
     FNULL = open(os.devnull, 'w')
@@ -318,7 +318,7 @@ def runAtf():
     os.chdir(explorationDir +"/"+ expressionCl)
     
     kernelNumber = countGeneratedKernels()         
-    executedKernels =0         
+    executedKernels =1         
     #search kernel folders
     for fileName in os.listdir(explorationDir+"/"+expressionCl):
         os.chdir(explorationDir+"/"+expressionCl)
