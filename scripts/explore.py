@@ -25,11 +25,6 @@ import sys
 parser = argparse.ArgumentParser( description='Lift exploration utility')
 parser.add_argument('--environment', dest='envConf', action='store', default='~/.lift/environment.conf',
         help='environment config. If there is no such file the mkEnvironemnt.sh will be executed.')
-#parser.add_argument('--portable', dest='isPortable', action='store_true',
-#        help='same as "--environment ../../.lift/environment.conf"')
-parser.add_argument('--noEnvironment', dest='noEnv', action='store_true',
-        help='do not use any environment.conf.')
-
 parser.add_argument('--clean', dest='clean', action='store_true',
         help='clean all generated folders and log-files')
 parser.add_argument('--highLevelRewrite', dest='highLevelRewrite', action='store_true',
@@ -79,16 +74,15 @@ def mkEnvironment(path):
 #check if environment config exists
 envConf = os.path.abspath(os.path.expanduser(args.envConf))
 print('[INFO] using environment config '+envConf)
-if not args.noEnv:
-    if os.path.exists(envConf):
-        if not os.path.isfile(envConf):
-            sys.exit("[ERROR] environment config already exists but it's not a file.")
-    else:
-        mkEnvironment(envConf)
-        if not os.path.exists(envConf):
-            sys.exit("[ERROR] environment config file was not found and could not be created. You can try the --noEnv flag if you don't want to use it.")
-    envConfigParser = configparser.RawConfigParser()
-    envConfigParser.read(envConf)
+if os.path.exists(envConf):
+    if not os.path.isfile(envConf):
+        sys.exit("[ERROR] environment config already exists but it's not a file.")
+else:
+    mkEnvironment(envConf)
+    if not os.path.exists(envConf):
+        sys.exit("[ERROR] environment config file was not found and could not be created.")
+envConfigParser = configparser.RawConfigParser()
+envConfigParser.read(envConf)
 
 # check if config exists
 print('[INFO] using explore config '+args.config)
@@ -100,25 +94,14 @@ configParser.read(configPath)
 
 
 ### ENVIRONMENT
-if not args.noEnv:
-    lift=envConfigParser.get('Path','Lift')
-    executor=envConfigParser.get('Path','Executor')
-    tuner=envConfigParser.get('Path','Tuner')
-    Rscript=envConfigParser.get('Path','Rscript')
-    
-    clPlattform=envConfigParser.get('OpenCl','Platform')
-    clDevice=envConfigParser.get('OpenCl','Device')
-    
-else: # if there is no environment.conf
-    # GENERAL
-    lift = configParser.get('General', 'Lift')
-    executor = configParser.get('General', 'Executor')
-    tuner = configParser.get('General', 'Tuner')
-    # R
-    Rscript = configParser.get('R', 'Script')
-    # openCL
-    clPlattform=""
-    clDevice=""
+lift=envConfigParser.get('Path','Lift')
+executor=envConfigParser.get('Path','Executor')
+tuner=envConfigParser.get('Path','Tuner')
+Rscript=envConfigParser.get('Path','Rscript')
+
+clPlattform=envConfigParser.get('OpenCl','Platform')
+clDevice=envConfigParser.get('OpenCl','Device')
+
     
 lift = os.path.normpath(lift)
 executor = os.path.normpath(executor)
