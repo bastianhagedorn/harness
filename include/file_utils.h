@@ -64,10 +64,14 @@ class File {
 		file_append(incompatible_filename, hash);
 	}
 
-	static void add_time(const std::string &hash, double time, cl::NDRange local_size) {
+	static void add_time(const std::string &hash, double time, std::size_t glob1,std::size_t glob2 ,
+	std::size_t glob3 ,cl::NDRange local_size) {
 		if (local_size.dimensions() != 0) {
 			auto sizes = (const size_t *)local_size;
 			file_append(timing_filename, hash + "," + std::to_string(time) + "," +
+							 std::to_string(glob1) + "," +
+							 std::to_string(glob2) + "," +
+							 std::to_string(glob3) + "," +
 							 std::to_string(sizes[0]) + "," +
 							 std::to_string(sizes[1]) + "," +
 							 std::to_string(sizes[2]));

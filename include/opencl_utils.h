@@ -94,7 +94,7 @@ class OpenCL {
 				evt.wait();
 				auto time = evt.getProfilingInfo<CL_PROFILING_COMMAND_END>() -
 					    evt.getProfilingInfo<CL_PROFILING_COMMAND_START>();
-				times.push_back(((double)time) / 1000.0 / 1000.0);
+				times.push_back((double)time/1000000);
 				if (times.back() > timeout)
 					break;
 				else if (times.back() > 5 * best_time)
@@ -115,7 +115,7 @@ class OpenCL {
 				sort(times.begin(), times.end());
 				auto median = times[times.size() / 2];
 				// Save result to file
-				File::add_time(run.hash, median, local_size);
+				File::add_time(run.hash, median, run.glob1, run.glob2, run.glob3 ,local_size);
 				best_time = min(best_time, median);
 				std::cout << "[" << counter << "] best time: " << median;
 				if (median > timeout) std::cout << " (timeout: " << timeout << ")";

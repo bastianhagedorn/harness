@@ -8,6 +8,10 @@ import shutil
 import time
 import configparser
 import calendar
+import csv
+import sys
+ 
+
 
 ### README ###########################################################
 # Script to start exploration run for a Lift high-level expression
@@ -19,6 +23,8 @@ import calendar
 
 ### ARGPARSER ########################################################
 parser = argparse.ArgumentParser( description='Lift exploration utility')
+parser.add_argument('--environment', dest='envConf', action='store', default='~/.lift/environment.conf',
+        help='environment config. If there is no such file the mkEnvironemnt.sh will be executed.')
 parser.add_argument('--clean', dest='clean', action='store_true',
         help='clean all generated folders and log-files')
 parser.add_argument('--highLevelRewrite', dest='highLevelRewrite', action='store_true',
@@ -29,6 +35,16 @@ parser.add_argument('--parameterRewrite', dest='parameterRewrite', action='store
         help='run ParameterRewrite')
 parser.add_argument('--runHarness', dest='runHarness', action='store_true',
         help='run harness recursively')
+parser.add_argument('--runAtf', dest='runAtf', action='store_true',
+        help='run atf recursively')
+parser.add_argument('--executeAtf', dest='executeAtf', action='store_true',
+        help='execute with atf and plot results')
+parser.add_argument('--fullAtf', dest='fullAtf', action='store_true',
+        help='run atf recursively')
+parser.add_argument('--findKernels', dest='findKernels', action='store_true',
+        help='find the best and worst kernel')
+parser.add_argument('--gatherTimesAtf', dest='gatherTimesAtf', action='store_true',
+        help='gather runtimes in csv')
 parser.add_argument('--gatherTimes', dest='gatherTimes', action='store_true',
         help='gather runtimes in csv')
 parser.add_argument('--plot', dest='plot', action='store_true',
@@ -43,19 +59,57 @@ parser.add_argument('--rerun', dest='rerun', action='store_true',
         help='removeBlacklist + execute')
 parser.add_argument('--removeBlacklist', dest='removeBlacklist', action='store_true',
         help='remove blacklisted files to enable re-running things')
+parser.add_argument('--silentExecution', dest='silentExecution', action='store_true',
+        help='run the execution without output')
 parser.add_argument('config', action='store', default='config',
         help='config file')
 args = parser.parse_args()
 
 # CONFIG (PARSER) ##################################################
+# environment config
+def mkEnvironment(path):
+    scriptsDir = os.path.dirname(os.path.realpath(__file__))
+    subprocess.call([scriptsDir+"/mkEnvironment.sh",path])
+
+#check if environment config exists
+envConf = os.path.abspath(os.path.expanduser(args.envConf))
+print('[INFO] using environment config '+envConf)
+if os.path.exists(envConf):
+    if not os.path.isfile(envConf):
+        sys.exit("[ERROR] environment config already exists but it's not a file.")
+else:
+    mkEnvironment(envConf)
+    if not os.path.exists(envConf):
+        sys.exit("[ERROR] environment config file was not found and could not be created.")
+envConfigParser = configparser.RawConfigParser()
+envConfigParser.read(envConf)
+
 # check if config exists
-if not os.path.exists(args.config): sys.exit("[ERROR] config file not found!")
+print('[INFO] using explore config '+args.config)
+configPath = os.path.expanduser(args.config)
+if not os.path.exists(configPath): sys.exit("[ERROR] config file not found!")
 configParser = configparser.RawConfigParser()
-configParser.read(args.config)
+configParser.read(configPath)
+
+
+
+### ENVIRONMENT
+lift=envConfigParser.get('Path','Lift')
+executor=envConfigParser.get('Path','Executor')
+tuner=envConfigParser.get('Path','Tuner')
+Rscript=envConfigParser.get('Path','Rscript')
+
+clPlattform=envConfigParser.get('OpenCl','Platform')
+clDevice=envConfigParser.get('OpenCl','Device')
+
+    
+lift = os.path.normpath(lift)
+executor = os.path.normpath(executor)
+tuner = os.path.normpath(tuner)
+Rscript = os.path.normpath(Rscript)
+
 
 ### GENERAL
-lift = configParser.get('General', 'Lift')
-executor = configParser.get('General', 'Executor')
 expression = configParser.get('General', 'Expression')
 inputSize = configParser.get('General', 'InputSize')
 name = configParser.get('General', 'Name')
@@ -101,7 +155,7 @@ exploreNDRange = configParser.get('ParameterRewrite', 'ExploreNDRange')
 sampleNDRange = configParser.get('ParameterRewrite', 'SampleNDRange')
 disableNDRangeInjection = configParser.get('ParameterRewrite', 'DisableNDRangeInjection')
 sequential = configParser.get('ParameterRewrite', 'Sequential')
-parameterRewriteArgs = " --file " + lift + "highLevel/" + settings 
+parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
 if(sequential == "true"): parameterRewriteArgs += " --sequential"
 if(disableNDRangeInjection == "true"): parameterRewriteArgs += " --disableNDRangeInjection"
 if(exploreNDRange == "true"): parameterRewriteArgs += " --exploreNDRange"
@@ -109,7 +163,16 @@ if (exploreNDRange == "true")and not (sampleNDRange == ""): parameterRewriteArgs
 
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
-harnessArgs = " " + configParser.get('Harness', 'Args')
+harnessArgs = "" + configParser.get('Harness', 'Args')
+if clPlattform != "":
+    harnessArgs += ' -p ' + clPlattform
+if clDevice != "":
+    harnessArgs += ' -d ' + clDevice
+
+### ATF
+#atf = configParser.get('ATF', 'atf')
+atfCsvHeader = configParser.get('ATF', 'header')
+tunerName = configParser.get('ATF', 'tunerName')  
 
 ### CSV
 #csvHeader = "kernel,time,lsize0,lsize1,lsize2"
@@ -119,7 +182,6 @@ timeCsv = "time_" + inputSize + ".csv"
 blacklistCsv = "blacklist_" + inputSize + ".csv"
 
 ### R
-Rscript = configParser.get('R', 'Script')
 output = expression + "_" + inputSize +  "_" + name + ".pdf"
 RscriptArgs = " --file " + epochTimeCsv + " --out " + output
 
@@ -129,7 +191,7 @@ explorationDir = currentDir + "/" + name
 expressionLower = expression + "Lower"
 expressionCl = expression + "Cl"
 plotsDir = "plots"
-scriptsDir = lift + "scripts/compiled_scripts/"
+scriptsDir = lift + "/scripts/compiled_scripts/"
 
 # HELPER FUNCTIONS #################################################
 def printBlue( string ):
@@ -176,7 +238,7 @@ def callExplorationStage(rewrite, args):
     subprocess.call([scriptsDir + rewrite, args])
 
 def highLevelRewrite():
-    args = highLevelRewriteArgs + " " + lift + "highLevel/" + expression
+    args = highLevelRewriteArgs + " " + lift + "/highLevel/" + expression
     callExplorationStage("HighLevelRewrite", args)
 
 def memoryMappingRewrite():
@@ -189,23 +251,215 @@ def parameterRewrite():
 
 def runHarness():
     printBlue("\n[INFO] Running Harness recursively")
+    
+    silent = bool(False)
+    if(args.silentExecution): 
+        silent = bool(True)
+        printBlue("[INFO] Running in silent mode\n")
+    
     pathToHarness = executor + "/build/" + harness
-    shutil.copy2(pathToHarness, expressionCl)
-    os.chdir(expressionCl)
+    #redirecting stdout of subprocesses to fnull
+    FNULL = open(os.devnull, 'w')
+    os.chdir(explorationDir +"/"+ expressionCl)
+    
+    kernelNumber = countGeneratedKernels()        
+    executedKernels =1 
     # recursively access every subdirectory and execute harness with harnessArgs
-    command = "for d in ./*/ ; do (cp " + harness + " \"$d\" && cd \"$d\" && ./"+ harness + harnessArgs + "); done"
-    os.system(command)
-    os.chdir(explorationDir)
+    for fileName in os.listdir(explorationDir+"/"+expressionCl):
+        os.chdir(explorationDir+"/"+expressionCl)
+        if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
+            os.chdir(fileName)
+            #copy tuner to the folder
+            shutil.copy2(pathToHarness, explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness)
+            #run harness with every kernel in the folder
+            for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
+                if fn.endswith(".cl"):
+                    if silent:
+                        sys.stdout.write("Progress: {}/{}   \r".format(executedKernels,kernelNumber) )
+                        sys.stdout.flush()
+                        p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness+" "+harnessArgs], shell=True,stdout=FNULL, stderr=subprocess.STDOUT)
+                    else:
+                        p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness+" "+harnessArgs], shell=True)
+                   
+                    p.wait()
+                    executedKernels+=1
+    
+    #command = "for d in ./*/ ; do (cp " + harness + " \"$d\" && cd \"$d\" && ./"+ harness + harnessArgs + "); done"
+    #os.system(command)
+    #os.chdir(explorationDir)
+
+def runAtf():
+    printBlue("\n[INFO] Tuning Kernels with Atf recursively")
+    silent = bool(False)
+    if(args.silentExecution): 
+        silent = bool(True)
+        printBlue("[INFO] Running in silent mode\n")
+    
+    #redirecting stdout of subprocesses to fnull
+    FNULL = open(os.devnull, 'w')
+    pathToTuner = tuner + "/" + tunerName
+    os.chdir(explorationDir +"/"+ expressionCl)
+    
+    kernelNumber = countGeneratedKernels()         
+    executedKernels =1         
+    #search kernel folders
+    for fileName in os.listdir(explorationDir+"/"+expressionCl):
+        os.chdir(explorationDir+"/"+expressionCl)
+        if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
+            os.chdir(fileName)
+            #copy tuner to the folder
+            shutil.copy2(pathToTuner, explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName)
+            #run atf with every kernel in the folder
+            currentKernelNumber=1;
+            for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
+                if fn.endswith(".cl"):
+                    if(silent):
+                        sys.stdout.write("Progress: {}/{}   \r".format(executedKernels,kernelNumber) )
+                        sys.stdout.flush()
+                        atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
+                        p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg],stdout=FNULL, stderr=subprocess.STDOUT)
+
+                    else:
+                        atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
+                        p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg])
+                    p.wait()
+                    addKernelNameToRow = "sed -i \""+str(currentKernelNumber)+"s/$/"+str(fn.partition(".")[0])+"/\" results.csv"
+                    os.system(addKernelNameToRow)
+                    currentKernelNumber+=1
+                    executedKernels+=1
+   
+
+def countGeneratedKernels():
+    kernelNumber =0
+    os.chdir(explorationDir +"/"+ expressionCl)
+    ##count the number of generated kernels
+    for fileName in os.listdir(explorationDir+"/"+expressionCl):
+        os.chdir(explorationDir+"/"+expressionCl)
+        if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
+            os.chdir(fileName)
+            for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
+                if fn.endswith(".cl"):
+                    kernelNumber +=1
+    return kernelNumber
 
 def gatherTimes():
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
-    os.chdir(expressionCl)
+    os.chdir(explorationDir+"/"+expressionCl)
     command = "find . -name \"" + timeCsv + "\" | xargs cat >> " + epochTimeCsv
     os.system(command)
     # add header
     addHeader = "sed -i 1i\""+ csvHeader + "\" " + epochTimeCsv
     os.system(addHeader)
     os.chdir(explorationDir)
+
+def gatherTimesAtf():
+    printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
+    os.chdir(explorationDir+"/"+expressionCl)
+    command = "find . -name \""  +"results.csv"+ "\" | xargs cat >> " + epochTimeCsv
+    os.system(command)
+    # add header
+    addHeader = "sed -i 1i\""+ atfCsvHeader + "\" " + epochTimeCsv
+    os.system(addHeader)
+    os.chdir(explorationDir)
+
+def findBestAndWorst():
+    printBlue("\n[INFO] Searching best and worst kernel -- " )
+    os.chdir(explorationDir+"/"+expressionCl)
+    csvFile= open(epochTimeCsv,"r")
+    #lists for the csv values
+    rows=[]
+    times = []
+    kernels = []
+    header=0
+    #parsing the csv values
+    reader=csv.reader(csvFile)
+    rownum=0
+    for row in reader:
+        if rownum ==0: header=row
+        else:
+            colnum = 0
+            for col in row:
+                if header[colnum]=="time": times.append(col)
+                if header[colnum]=="kernel": kernels.append(col)
+                
+                colnum+=1
+            rows.append(row) 
+        rownum += 1
+            
+    csvFile.close()
+    #find the best and worst kernel
+    index=0
+    bestTime=99999999
+    bestKernel="null"
+    bestKernelIndex=0
+    worstKernelIndex=0
+    worstTime=0;
+    worstKernel="null"
+
+    for time in times:
+        if(isfloat(time)):
+            if bestTime > float(time):
+                bestKernel=kernels[index]
+                bestTime=float(time)
+                bestKernelIndex=index
+            if worstTime < float(time):
+                worstTime=float(time)
+                worstKernel=kernels[index]
+                worstKernelIndex=index
+            index+=1;
+        else:
+            if bestTime > int(time):
+                bestKernel=kernels[index]
+                bestTime=int(time)
+                bestKernelIndex=index
+            if worstTime < int(time):
+                worstTime=int(time)
+                worstKernel=kernels[index]
+                worstKernelIndex=index
+            index+=1;   
+        
+
+    os.chdir(explorationDir)
+        #save best kernel
+    command = "mkdir bestkernel; cd bestkernel ;echo \""+str(header)+"\n"+str(rows[bestKernelIndex])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel+"*.cl' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
+    os.system(command)
+        #save lowelevel expression
+    os.chdir(explorationDir+"/bestkernel")
+    command = "find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/expression.low \\;" 
+    os.system(command)
+        #save highlevel expression
+    os.chdir(explorationDir+"/bestkernel")
+    command = "find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/expression.high \\;" 
+    os.system(command)
+    os.chdir(explorationDir)
+        #save worst kernel
+    command = "mkdir worstkernel; cd worstkernel; echo \""+str(header)+"\n"+str(rows[worstKernelIndex])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+worstKernel+".cl' -exec cp '{}' "+explorationDir+"/worstkernel/kernel.cl \\;" 
+    os.system(command)  
+        #save lowelevel expression
+    os.chdir(explorationDir+"/worstkernel")
+    command = "find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/worstkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/worstkernel/expression.low \\;" 
+    os.system(command)
+            #save highlevel expression
+    os.chdir(explorationDir+"/worstkernel")
+    command = "find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/worstkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/worstkernel/expression.high \\;" 
+    os.system(command)
+    saveExplorationMetaInformation()
+    
+def getVariable(filePath,variableName):
+    ffile=open(filePath,'r').read()
+    ini=ffile.find(variableName)+(len(variableName)+1)
+    rest=ffile[ini:]
+    search_enter=rest.find('\n')
+    return rest[:search_enter]
+    
+def isfloat(x):
+    try:
+        a = float(x)
+    except ValueError:
+        return False
+    else:
+        return True
+
 
 def plot():
     printBlue("\n[INFO] Plotting results")
@@ -229,11 +483,33 @@ def execute():
     gatherTimes()
     plot()
 
+def executeAtf():
+    printBlue("[INFO] Execute generated kernels")
+    runAtf()
+    gatherTimesAtf()
+    plot()
+
 def rerun():
     printBlue("[INFO] Rerunning:")
     removeBlacklist()
     execute()
     printSummary()
+    
+#global exploration length in mins
+explorationLength = 0
+
+def exploreAtf():
+    printBlue("[INFO] Starting exploration -- " + expression)
+    start = time.time()
+    rewrite()
+    executeAtf()
+    end = time.time()
+    elapsed = (end-start)/60
+    global explorationLength
+    explorationLength = elapsed
+    printBlue("[INFO] Finished exploration! Took " + str(elapsed) + " minutes to execute")
+    printSummary()
+    findBestAndWorst()
 
 def explore():
     printBlue("[INFO] Starting exploration -- " + expression)
@@ -242,13 +518,35 @@ def explore():
     execute()
     end = time.time()
     elapsed = (end-start)/60
+    global explorationLength
+    explorationLength = elapsed
     printBlue("[INFO] Finished exploration! Took " + str(elapsed) + " minutes to execute")
     printSummary()
+    findBestAndWorst()
 
 def printOccurences(name):
     print(bcolors.BLUE + "[INFO] " + name + ": " + bcolors.ENDC, end='', flush=True)
     find = "find . -name \"" + name + "_" + inputSize + ".csv\" | xargs cat | wc -l"
     os.system(find)
+    
+def saveExplorationMetaInformation():
+    global explorationLength
+    os.chdir(explorationDir+"/bestkernel")
+    kernelNumber = "cd "+explorationDir+"/"+expressionCl+";  ls */*.cl | wc -l"
+    validExecutions = "find "+explorationDir+"/"+expressionCl+" -name \"" + timeCsv + "\" | xargs cat | wc -l"
+    allExecutions = "find "+explorationDir+"/"+expressionCl+" -name \"exec_" + inputSize + ".csv\" | xargs cat | wc -l"
+    liftBranch = "cd "+lift+" ; git branch | grep -e \"^*\" | cut -d' ' -f 2-"
+    liftCommit = "cd "+lift+" ; git rev-parse HEAD"
+    arithExpBranch = "cd "+lift+"/lib/ArithExpr ;  git branch | grep -e \"^*\" | cut -d' ' -f 2-"
+    arithExpCommit = "cd "+lift+"/lib/ArithExpr  ; git rev-parse HEAD"
+    harnessBranch = "cd "+executor+" ; git branch | grep -e \"^*\" | cut -d' ' -f 2-"
+    harnessCommit = "cd "+executor+" ; git rev-parse HEAD"
+    
+    
+    saveMetadataHeader = "echo \"explorationTime,kernelNumber,allExecutions,validExecutions,liftBramch,currentLiftCommit,arithExprBranch,currentArithExprCommit,harnessBranch,currentHarnessCommit\" >> metadata.csv"
+    saveExplorationTime = "echo \""+str(explorationLength)+",$("+kernelNumber+"),$("+allExecutions+"),$("+validExecutions+"),$("+liftBranch+"),$("+liftCommit+"),$("+arithExpBranch+"),$("+arithExpCommit+"),$("+harnessBranch+"),$("+harnessCommit+")\" >> metadata.csv"
+    os.system(saveMetadataHeader)
+    os.system(saveExplorationTime)
     
 def printSummary():
     #print how many executed runs there are
@@ -304,5 +602,10 @@ else:
     if(args.removeBlacklist): removeBlacklist()
     if(args.rerun): rerun()
     if(args.full): explore()
+    if(args.runAtf): runAtf()
+    if(args.executeAtf): runAtf()
+    if(args.fullAtf): exploreAtf()
+    if(args.findKernels): findBestAndWorst()
+    if(args.gatherTimesAtf): gatherTimesAtf()
 
 os.chdir(currentDir)
