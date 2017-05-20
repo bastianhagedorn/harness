@@ -458,23 +458,24 @@ def lowLevelAtf():
                         lowLevelPath = explorationDir+"/"+rowAsString
                         if os.path.isfile(lowLevelPath):
                             lowLevelHash = rowAsString.split("/")[-1]
-                            makeAtfScripts(lowLevelHash)
+                            makeAtfScripts(lowLevelPath,lowLevelHash)
+                            #hier würde dann atf mit den scripts aufgerufen.
                             #p= subprocess.Popen([ atfRunner, atfArg],stdout=FNULL, stderr=subprocess.STDOUT)
                             print("Processing Expression: \""+lowLevelHash+"\"\n")
                         else:
                             print("Path was not a file: \""+lowLevelPath+"\"\n")
 
-def makeAtfScripts(lowLevelHash):
+def makeAtfScripts(lowLevelExpressionPath, lowLevelHash):
     printBlue("\n[INFO] Generating compile.sh and run.sh for low level expression "+lowLevelHash+" -- " )
     os.chdir(explorationDir)
     silent_mkdir(explorationDir+"/atfCcfg")
     
     #testing vars
-    kernelGenerator ="/home/mhein/generator.exe"
-    kernelGeneratorArgs ="-global 1,1,1 -local 1,2,3"
+    kernelGenerator ="/path/to/KernelGenerator/KernelGenerator"
+    kernelGeneratorArgs ="--ls 32,1,1 --gs 32,1,1"
     
     
-    tuningScript = "#!/bin/sh\n\n"+"."+kernelGenerator+" "+kernelGeneratorArgs
+    tuningScript = "#!/bin/sh\n\n"+"."+kernelGenerator+" "+kernelGeneratorArgs+ " "+lowLevelExpressionPath
     runScript = "#!/bin/sh\n\n."+executor+"/scripts/explore.py --atfHarness --atfHarnessDir "+explorationDir+"/"+expressionCl+"/"+lowLevelHash
     compileScript = "#!/bin/sh\n\n."+explorationDir+"/atfCcfg/tuningScript.sh"
     createTuningScript = "echo \""+tuningScript+"\" > "+explorationDir+"/atfCcfg/tuningScript.sh"
