@@ -61,8 +61,15 @@ parser.add_argument('--removeBlacklist', dest='removeBlacklist', action='store_t
         help='remove blacklisted files to enable re-running things')
 parser.add_argument('--silentExecution', dest='silentExecution', action='store_true',
         help='run the execution without output')
+parser.add_argument('--lowLevelAtf', dest='lowLevelAtf', action='store_true',
+        help='run the tuning of low level expressions with atf ccfg')
 parser.add_argument('config', action='store', default='config',
         help='config file')
+parser.add_argument('--atfHarness', dest='atfHarness', action='store_true',
+        help='harness run from atf')   
+parser.add_argument('--atfHarnessDir', action='store', default='store_false',
+        help='explicit dir needed for ccfg execution and cost file generation')
+
 args = parser.parse_args()
 
 # CONFIG (PARSER) ##################################################
@@ -283,10 +290,72 @@ def runHarness():
                    
                     p.wait()
                     executedKernels+=1
+
+def runHarnessInDir(pathOfDirectory):
+    printBlue("\n[INFO] Running Harness with every Kenrel in "+pathOfDirectory)
     
-    #command = "for d in ./*/ ; do (cp " + harness + " \"$d\" && cd \"$d\" && ./"+ harness + harnessArgs + "); done"
-    #os.system(command)
-    #os.chdir(explorationDir)
+    silent = bool(False)
+    if(args.silentExecution): 
+        silent = bool(True)
+        printBlue("[INFO] Running in silent mode\n")
+    
+    pathToHarness = executor + "/build/" + harness
+    #redirecting stdout of subprocesses to fnull
+    FNULL = open(os.devnull, 'w')
+    os.chdir(pathOfDirectory)
+    
+    kernelNumber = countGeneratedKernels()        
+    executedKernels =1 
+
+    shutil.copy2(pathToHarness, pathOfDirectory+"/"+harness)
+    #run harness with every kernel in the folder
+    for fn in os.listdir(pathOfDirectory):
+        if fn.endswith(".cl"):
+            if silent:
+                sys.stdout.write("Progress: {}/{}   \r".format(executedKernels,kernelNumber) )
+                sys.stdout.flush()
+                p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness+" "+harnessArgs], shell=True,stdout=FNULL, stderr=subprocess.STDOUT)
+            else:
+                p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness+" "+harnessArgs], shell=True)
+
+            p.wait()
+            executedKernels+=1
+
+def generateCostFile(pathOfDirectory):
+    printBlue("\n[INFO] Generating cost file in "+pathOfDirectory)
+    os.chdir(pathOfDirectory)
+    csvFile= open(pathOfDirectory+"/"+timeCsv,"r")
+    #lists for the csv values
+    rows=[]
+    times = []
+    kernels = []
+    header=0
+    #parsing the csv values
+    reader=csv.reader(csvFile)
+    rownum=0
+    for row in reader:
+        if rownum ==0: header=row
+        else:
+            colnum = 0
+            for col in row:
+                if header[colnum]=="time": times.append(col)
+                
+                colnum+=1
+            rows.append(row) 
+        rownum += 1
+
+    csvFile.close()
+
+    bestTime=99999999
+    for time in times:
+        if bestTime > float(time):
+            bestTime=float(time)
+
+        index+=1;
+    
+    makeCostFile= "echo \""+str(bestTime)+"\" > "+pathOfDirectory+"/costFile.txt"
+    
+    
 
 def runAtf():
     printBlue("\n[INFO] Tuning Kernels with Atf recursively")
@@ -361,6 +430,60 @@ def gatherTimesAtf():
     addHeader = "sed -i 1i\""+ atfCsvHeader + "\" " + epochTimeCsv
     os.system(addHeader)
     os.chdir(explorationDir)
+    
+def atfHarness():
+    #check if environment config exists
+    runDir = args.atfHarnessDir
+    print('[INFO] running harness in '+runDir)
+    if os.path.exists(runDir):
+        if not os.path.isdir(runDir):
+            sys.exit("[ERROR] environment config already exists but it's not a dir.")
+        runHarnessInDir(runDir)
+        generateCostFile(runDir)
+
+def lowLevelAtf():
+    printBlue("\n[INFO] Tuning low level expressions with atf -- " )
+    executedKernels =1         
+    #search kernel folders
+    for fileName in os.listdir(explorationDir+"/"+expressionLower):
+        if os.path.isdir(explorationDir+"/"+expressionLower+"/"+fileName) :
+            currentKernelNumber=1;
+            for fn in os.listdir(explorationDir+"/"+expressionLower+"/"+fileName):
+                if fn =="index":
+                    indexFile= open(explorationDir+"/"+expressionLower+"/"+fileName+"/index","r")
+                    reader=csv.reader(indexFile)
+                    rownum=0
+                    for row in reader:
+                        rowAsString = "".join(row)
+                        lowLevelPath = explorationDir+"/"+rowAsString
+                        if os.path.isfile(lowLevelPath):
+                            lowLevelHash = rowAsString.split("/")[-1]
+                            makeAtfScripts(lowLevelHash)
+                            #p= subprocess.Popen([ atfRunner, atfArg],stdout=FNULL, stderr=subprocess.STDOUT)
+                            print("Processing Expression: \""+lowLevelHash+"\"\n")
+                        else:
+                            print("Path was not a file: \""+lowLevelPath+"\"\n")
+
+def makeAtfScripts(lowLevelHash):
+    printBlue("\n[INFO] Generating compile.sh and run.sh for low level expression "+lowLevelHash+" -- " )
+    os.chdir(explorationDir)
+    silent_mkdir(explorationDir+"/atfCcfg")
+    
+    #testing vars
+    kernelGenerator ="/home/mhein/generator.exe"
+    kernelGeneratorArgs ="-global 1,1,1 -local 1,2,3"
+    
+    
+    tuningScript = "#!/bin/sh\n\n"+"."+kernelGenerator+" "+kernelGeneratorArgs
+    runScript = "#!/bin/sh\n\n."+executor+"/scripts/explore.py --atfHarness --atfHarnessDir "+explorationDir+"/"+expressionCl+"/"+lowLevelHash
+    compileScript = "#!/bin/sh\n\n."+explorationDir+"/atfCcfg/tuningScript.sh"
+    createTuningScript = "echo \""+tuningScript+"\" > "+explorationDir+"/atfCcfg/tuningScript.sh"
+    createCompileScript = "echo \""+compileScript+"\" > "+explorationDir+"/atfCcfg/compileScript.sh"
+    createRunScript = "echo \""+runScript+"\" > "+explorationDir+"/atfCcfg/runScript.sh"
+    os.system(createTuningScript)
+    os.system(createCompileScript)
+    os.system(createRunScript)
+    
 
 def findBestAndWorst():
     printBlue("\n[INFO] Searching best and worst kernel -- " )
@@ -607,5 +730,7 @@ else:
     if(args.fullAtf): exploreAtf()
     if(args.findKernels): findBestAndWorst()
     if(args.gatherTimesAtf): gatherTimesAtf()
+    if(args.atfHarness): atfHarness() 
+    if(args.lowLevelAtf): lowLevelAtf()
 
 os.chdir(currentDir)
