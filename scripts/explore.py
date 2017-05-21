@@ -94,6 +94,7 @@ envConfigParser.read(envConf)
 # check if config exists
 print('[INFO] using explore config '+args.config)
 configPath = os.path.expanduser(args.config)
+absoluteConfigPath =os.path.realpath(configPath)
 if not os.path.exists(configPath): sys.exit("[ERROR] config file not found!")
 configParser = configparser.RawConfigParser()
 configParser.read(configPath)
@@ -304,8 +305,6 @@ def runHarnessInDir(pathOfDirectory):
     FNULL = open(os.devnull, 'w')
     os.chdir(pathOfDirectory)
     
-    kernelNumber = countGeneratedKernels()        
-    executedKernels =1 
 
     shutil.copy2(pathToHarness, pathOfDirectory+"/"+harness)
     #run harness with every kernel in the folder
@@ -314,12 +313,12 @@ def runHarnessInDir(pathOfDirectory):
             if silent:
                 sys.stdout.write("Progress: {}/{}   \r".format(executedKernels,kernelNumber) )
                 sys.stdout.flush()
-                p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness+" "+harnessArgs], shell=True,stdout=FNULL, stderr=subprocess.STDOUT)
+                p= subprocess.Popen([pathOfDirectory+"/"+harness+" "+harnessArgs], shell=True,stdout=FNULL, stderr=subprocess.STDOUT)
             else:
-                p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness+" "+harnessArgs], shell=True)
+                p= subprocess.Popen([pathOfDirectory+"/"+harness+" "+harnessArgs], shell=True)
 
             p.wait()
-            executedKernels+=1
+
 
 def generateCostFile(pathOfDirectory):
     printBlue("\n[INFO] Generating cost file in "+pathOfDirectory)
@@ -461,7 +460,8 @@ def lowLevelAtf():
                             makeAtfScripts(lowLevelPath,lowLevelHash)
                             #hier würde dann atf mit den scripts aufgerufen.
                             
-                            p= subprocess.Popen([ explorationDir+'/atfCcfg/lowLevelLift' ])
+                            p= subprocess.Popen([ './lowLevelLift' ],cwd=explorationDir+'/atfCcfg',shell=True)
+                            p.wait()
                             print("Processing Expression: \""+lowLevelHash+"\"\n")
                         else:
                             print("Path was not a file: \""+lowLevelPath+"\"\n")
@@ -478,11 +478,18 @@ def makeAtfScripts(lowLevelExpressionPath, lowLevelHash):
     compileScript.write('#!/bin/sh\n')
     compileScript.write(kernelGenerator+' '+kernelGeneratorArgs+' '+lowLevelExpressionPath)
     compileScript.close()
+    make_executable(explorationDir+'/atfCcfg/compileScript.sh')
     
     runScript = open(explorationDir+'/atfCcfg/runScript.sh','w')
     runScript.write('#!/bin/sh\n')
-    runScript.write(executor+'/scripts/explore.py --atfHarness --atfHarnessDir '+explorationDir+'/'+expressionCl+'/'+lowLevelHash)
+    runScript.write(executor+'/scripts/explore.py --atfHarness --atfHarnessDir '+explorationDir+'/'+expressionCl+'/'+lowLevelHash +" "+absoluteConfigPath)
     runScript.close()
+    make_executable(explorationDir+'/atfCcfg/runScript.sh')
+
+def make_executable(path):
+    mode = os.stat(path).st_mode
+    mode |= (mode & 0o444) >> 2    # copy R bits to X
+    os.chmod(path, mode)
     
 
 def findBestAndWorst():
