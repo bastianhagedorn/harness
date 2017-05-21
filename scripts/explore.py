@@ -198,7 +198,7 @@ explorationDir = currentDir + "/" + name
 expressionLower = expression + "Lower"
 expressionCl = expression + "Cl"
 plotsDir = "plots"
-scriptsDir = lift + "/scripts/compiled_scripts/"
+scriptsDir = lift + "/scripts/compiled_scripts"
 
 # HELPER FUNCTIONS #################################################
 def printBlue( string ):
@@ -242,7 +242,7 @@ def clean():
 def callExplorationStage(rewrite, args):
     printBlue("\n[INFO] Running " + rewrite)
     printBlue("[INFO] args: " + args)
-    subprocess.call([scriptsDir + rewrite, args])
+    subprocess.call([scriptsDir + "/" + rewrite, args])
 
 def highLevelRewrite():
     args = highLevelRewriteArgs + " " + lift + "/highLevel/" + expression
@@ -460,7 +460,8 @@ def lowLevelAtf():
                             lowLevelHash = rowAsString.split("/")[-1]
                             makeAtfScripts(lowLevelPath,lowLevelHash)
                             #hier würde dann atf mit den scripts aufgerufen.
-                            #p= subprocess.Popen([ atfRunner, atfArg],stdout=FNULL, stderr=subprocess.STDOUT)
+                            
+                            p= subprocess.Popen([ explorationDir+'/atfCcfg/lowLevelLift' ])
                             print("Processing Expression: \""+lowLevelHash+"\"\n")
                         else:
                             print("Path was not a file: \""+lowLevelPath+"\"\n")
@@ -470,20 +471,18 @@ def makeAtfScripts(lowLevelExpressionPath, lowLevelHash):
     os.chdir(explorationDir)
     silent_mkdir(explorationDir+"/atfCcfg")
     
-    #testing vars
-    kernelGenerator ="/path/to/KernelGenerator/KernelGenerator"
-    kernelGeneratorArgs ="--ls 32,1,1 --gs 32,1,1"
+    kernelGenerator = scriptsDir+"/KernelGenerator"
+    kernelGeneratorArgs ='--ls <$TP:LS0>,1,1 --gs <$TP:GS0>,1,1'
     
+    compileScript = open(explorationDir+'/atfCcfg/compileScript.sh','w')
+    compileScript.write('#!/bin/sh\n')
+    compileScript.write(kernelGenerator+' '+kernelGeneratorArgs+' '+lowLevelExpressionPath)
+    compileScript.close()
     
-    tuningScript = "#!/bin/sh\n\n"+"."+kernelGenerator+" "+kernelGeneratorArgs+ " "+lowLevelExpressionPath
-    runScript = "#!/bin/sh\n\n."+executor+"/scripts/explore.py --atfHarness --atfHarnessDir "+explorationDir+"/"+expressionCl+"/"+lowLevelHash
-    compileScript = "#!/bin/sh\n\n."+explorationDir+"/atfCcfg/tuningScript.sh"
-    createTuningScript = "echo \""+tuningScript+"\" > "+explorationDir+"/atfCcfg/tuningScript.sh"
-    createCompileScript = "echo \""+compileScript+"\" > "+explorationDir+"/atfCcfg/compileScript.sh"
-    createRunScript = "echo \""+runScript+"\" > "+explorationDir+"/atfCcfg/runScript.sh"
-    os.system(createTuningScript)
-    os.system(createCompileScript)
-    os.system(createRunScript)
+    runScript = open(explorationDir+'/atfCcfg/runScript.sh','w')
+    runScript.write('#!/bin/sh\n')
+    runScript.write(executor+'/scripts/explore.py --atfHarness --atfHarnessDir '+explorationDir+'/'+expressionCl+'/'+lowLevelHash)
+    runScript.close()
     
 
 def findBestAndWorst():
