@@ -323,6 +323,8 @@ def runHarnessInDir(pathOfDirectory):
 def generateCostFile(pathOfDirectory):
     printBlue("\n[INFO] Generating cost file in "+pathOfDirectory)
     os.chdir(pathOfDirectory)
+    addHeader = "sed -i 1i\""+ csvHeader + "\" " + pathOfDirectory+"/"+timeCsv
+    os.system(addHeader)
     csvFile= open(pathOfDirectory+"/"+timeCsv,"r")
     #lists for the csv values
     rows=[]
@@ -332,7 +334,7 @@ def generateCostFile(pathOfDirectory):
     #parsing the csv values
     reader=csv.reader(csvFile)
     rownum=0
-    for row in reader:
+    for row in reader:        
         if rownum ==0: header=row
         else:
             colnum = 0
@@ -350,10 +352,12 @@ def generateCostFile(pathOfDirectory):
         if bestTime > float(time):
             bestTime=float(time)
 
-        index+=1;
-    
-    makeCostFile= "echo \""+str(bestTime)+"\" > "+pathOfDirectory+"/costFile.txt"
-    
+    print("COST: "+str(int(bestTime*10000))+"\nPATH: "+currentDir+"/costFile.txt\n")
+    #*10000 übergangslösung da atf noch keine floats als cost nimmt
+    costfile = open(currentDir+"/costfile.txt",'w+')
+    costfile.write(str(int(bestTime*10000)))
+    costfile.close()
+
     
 
 def runAtf():
@@ -459,10 +463,10 @@ def lowLevelAtf():
                             lowLevelHash = rowAsString.split("/")[-1]
                             makeAtfScripts(lowLevelPath,lowLevelHash)
                             #hier würde dann atf mit den scripts aufgerufen.
-                            
+                            print("Processing Expression: \""+lowLevelHash+"\"\n")
                             p= subprocess.Popen([ './lowLevelLift' ],cwd=explorationDir+'/atfCcfg',shell=True)
                             p.wait()
-                            print("Processing Expression: \""+lowLevelHash+"\"\n")
+                            
                         else:
                             print("Path was not a file: \""+lowLevelPath+"\"\n")
 
