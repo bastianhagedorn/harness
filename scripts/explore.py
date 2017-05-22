@@ -105,15 +105,17 @@ configParser.read(configPath)
 lift=envConfigParser.get('Path','Lift')
 executor=envConfigParser.get('Path','Executor')
 tuner=envConfigParser.get('Path','Tuner')
+lowLevelTuner=envConfigParser.get('Path','LowLevelTuner')
 Rscript=envConfigParser.get('Path','Rscript')
 
-clPlattform=envConfigParser.get('OpenCl','Platform')
-clDevice=envConfigParser.get('OpenCl','Device')
+clPlattform=envConfigParser.get('OpenCL','Platform')
+clDevice=envConfigParser.get('OpenCL','Device')
 
     
 lift = os.path.normpath(lift)
 executor = os.path.normpath(executor)
 tuner = os.path.normpath(tuner)
+lowLevelTuner = os.path.normpath(lowLevelTuner)
 Rscript = os.path.normpath(Rscript)
 
 
@@ -450,12 +452,30 @@ def lowLevelAtf():
     #search kernel folders
     for fileName in os.listdir(explorationDir+"/"+expressionLower):
         if os.path.isdir(explorationDir+"/"+expressionLower+"/"+fileName) :
-            currentKernelNumber=1;
+            if(os.path.isfile(explorationDir+"/"+expressionLower+"/"+fileName+"/index")):
+                indexFile= open(explorationDir+"/"+expressionLower+"/"+fileName+"/index","r")
+                reader=csv.reader(indexFile)
+                for row in reader:
+                    rowAsString = "".join(row)
+                    lowLevelPath = explorationDir+"/"+rowAsString
+                    if os.path.isfile(lowLevelPath):
+                        lowLevelHash = rowAsString.split("/")[-1]
+                        makeAtfScripts(lowLevelPath,lowLevelHash)
+                        #hier würde dann atf mit den scripts aufgerufen.
+                        print("Processing Expression: \""+lowLevelHash+"\"\n")
+                        p= subprocess.Popen([ './lowLevelLift' ],cwd=explorationDir+'/atfCcfg',shell=True)
+                        p.wait()
+                        
+                    else:
+                        print("Path was not a file: \""+lowLevelPath+"\"\n")
+            else: print("index file is missing for "+explorationDir+"/"+expressionLower+"/"+fileName)
+
+                
+            """
             for fn in os.listdir(explorationDir+"/"+expressionLower+"/"+fileName):
                 if fn =="index":
                     indexFile= open(explorationDir+"/"+expressionLower+"/"+fileName+"/index","r")
                     reader=csv.reader(indexFile)
-                    rownum=0
                     for row in reader:
                         rowAsString = "".join(row)
                         lowLevelPath = explorationDir+"/"+rowAsString
@@ -469,21 +489,29 @@ def lowLevelAtf():
                             
                         else:
                             print("Path was not a file: \""+lowLevelPath+"\"\n")
+            """
 
 def makeAtfScripts(lowLevelExpressionPath, lowLevelHash):
     printBlue("\n[INFO] Generating compile.sh and run.sh for low level expression "+lowLevelHash+" -- " )
-    os.chdir(explorationDir)
+    if(not os.path.isdir(lowLevelTuner) or not os.path.isfile(lowLevelTuner+'/lowLevelLift')):
+        sys.exit("[ERROR] Low level tuner does not exist at " + lowLevelTuner+'/lowLevelLift')
+    #os.chdir(explorationDir)
     silent_mkdir(explorationDir+"/atfCcfg")
     
+    #copy the tuner
+    shutil.copy2(lowLevelTuner+'/lowLevelLift', explorationDir+'/atfCcfg')
+    make_executable(explorationDir+'/atfCcfg')
+    
+    #create the compile script
     kernelGenerator = scriptsDir+"/KernelGenerator"
     kernelGeneratorArgs ='--ls <$TP:LS0>,1,1 --gs <$TP:GS0>,1,1'
-    
     compileScript = open(explorationDir+'/atfCcfg/compileScript.sh','w')
     compileScript.write('#!/bin/sh\n')
     compileScript.write(kernelGenerator+' '+kernelGeneratorArgs+' '+lowLevelExpressionPath)
     compileScript.close()
     make_executable(explorationDir+'/atfCcfg/compileScript.sh')
     
+    #create the run script
     runScript = open(explorationDir+'/atfCcfg/runScript.sh','w')
     runScript.write('#!/bin/sh\n')
     runScript.write(executor+'/scripts/explore.py --atfHarness --atfHarnessDir '+explorationDir+'/'+expressionCl+'/'+lowLevelHash +" "+absoluteConfigPath)

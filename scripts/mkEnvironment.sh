@@ -10,7 +10,8 @@ DEFAULT_BASEPATH=$(readlink -f ${SCRIPTPATH}/../..)
 # default paths
 DEFAULT_LIFT_LOCATION="${DEFAULT_BASEPATH}/lift/"
 DEFAULT_HARNESS_LOCATION="${DEFAULT_BASEPATH}/harness/"
-DEFAULT_TUNER_LOCATION="${DEFAULT_BASEPATH}/atf/bld/examples/genericLiftKernel/"
+DEFAULT_TUNER_LOCATION="${DEFAULT_BASEPATH}/atf/build/examples/genericLiftKernel/"
+DEFAULT_LL_TUNER_LOCATION="${DEFAULT_BASEPATH}/atf/build/examples/lowLevelLift/"
 DEFAULT_PLOTSCRIPT_LOCATION="${DEFAULT_BASEPATH}/exploration/R/violinShoc.r"
 
 #default cl env
@@ -30,8 +31,9 @@ mkdir -p $confDir # create dir if nonexistent
 printf "\nSet up the paths.\n"
 read -e -p "Where is lift located? : " -i "$DEFAULT_LIFT_LOCATION" liftLocation
 read -e -p "Where is harness located? : " -i "$DEFAULT_HARNESS_LOCATION" executorLocation
-read -e -p "Where is the Tuner located? : " -i "$DEFAULT_TUNER_LOCATION" tunerLocation
-read -e -p "Where the R plot script located? : " -i "$DEFAULT_PLOTSCRIPT_LOCATION" plotscriptLocation
+read -e -p "Where is the Kernel Tuner located? : " -i "$DEFAULT_TUNER_LOCATION" tunerLocation
+read -e -p "Where is the LowLevel Tuner located? : " -i "$DEFAULT_LL_TUNER_LOCATION" llTunerLocation
+read -e -p "Where is the R plot script located? : " -i "$DEFAULT_PLOTSCRIPT_LOCATION" plotscriptLocation
 
 
 # ask for the openCL setup
@@ -45,9 +47,10 @@ cat <<EOF > "$confFile"
 Lift = $liftLocation
 Executor = $executorLocation
 Tuner = $tunerLocation
+LowLevelTuner = $llTunerLocation
 Rscript = $plotscriptLocation
 
-[OpenCl]
+[OpenCL]
 Platform = $clPlattform
 Device = $clDevice
 EOF
