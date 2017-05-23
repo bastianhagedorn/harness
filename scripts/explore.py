@@ -490,9 +490,7 @@ def prepareLowLevelTuning():
 
 def makeLowLevelTuner(lowLevelExpressionPath):
     #create Tuner code
-    jsonFile = open(lowLevelExpressionPath+'_parameter.json')
-    params = json.load(jsonFile)
-    jsonFile.close()
+    params = getTuningParameter(lowLevelExpressionPath)
     mainCpp = open(atf+'/examples/lowLevelLift/src/main.cpp','w')
     mainCpp.write('#include <atf.h>\n')
     mainCpp.write('int main(){\n')
@@ -517,15 +515,18 @@ def makeLowLevelTuner(lowLevelExpressionPath):
     mainCpp.close()
     
     #compile it
-    #p = subprocess.Popen([ atf+'/build.sh' ])
-    #p.wait()
+    p = subprocess.Popen([ atf+'/build.sh' ])
+    p.wait()
     
     #move it over
     
     
 def getTuningParameter(lowLevelExpressionPath):
     #returns the tuning parameters object of the given file
-    return None
+    jsonFile = open(lowLevelExpressionPath+'_parameter.json')
+    params = json.load(jsonFile)
+    jsonFile.close()
+    return params
     
     
 
