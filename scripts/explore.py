@@ -11,7 +11,11 @@ import calendar
 import csv
 import sys
 import json
- 
+
+#Which module to require depends on the used flag (--atf, --llatf, --harness)
+import lowLevelTuning as executionModule
+#import kernelTuning as executionModule
+#import harnessTuning as executionModule
 
 
 ### README ###########################################################
@@ -469,65 +473,7 @@ def atfHarness():
         for line in csvFile:
             gatheredCsv.write(line)     
         
-        clearDir(runDir)
-
-
-def prepareLowLevelTuning():
-    printBlue("\n[INFO] Tuning low level expressions with atf -- " )
-    for fileName in os.listdir(explorationDir+'/'+expressionLower):
-        if os.path.isdir(explorationDir+'/'+expressionLower+'/'+fileName):
-            #this file contains paths of LowLevel expressions relative to the exploration dir
-            indexFile = open(explorationDir+"/"+expressionLower+"/"+fileName+"/index","r")
-            for llrelPath in indexFile:
-                llrelPath=llrelPath.strip('\n') #remove the newline
-                lowLevelPath=explorationDir+'/'+llrelPath
-                if(os.path.isfile(lowLevelPath)):
-                    lowLevelHash=os.path.basename(llrelPath)
-                    makeLowLevelTuner(lowLevelPath)
-                else:
-                    warn('Not a file: "' + lowLevelPath+'"')
-                
-
-def makeLowLevelTuner(lowLevelExpressionPath):
-    #create Tuner code
-    params = getTuningParameter(lowLevelExpressionPath)
-    mainCpp = open(atf+'/examples/lowLevelLift/src/main.cpp','w')
-    mainCpp.write('#include <atf.h>\n')
-    mainCpp.write('int main(){\n')
-    
-    tps=[]
-    for param in params:
-        tps.append(param['name'])
-        mainCpp.write('auto '+param['name']+' = atf::tp( "'+param['name']+'"')
-        if('interval' in param):
-            interval=param['interval']
-            mainCpp.write(', atf::interval<'+interval['type']+'>('+interval['from']+','+interval['to']+')')
-        
-        if('divides' in param):
-            mainCpp.write(', atf::divides('+param[divides]+')')
-                
-        mainCpp.write(');\n')
-    
-    mainCpp.write('auto cf = atf::cf::ccfg("./lowLevelExpression", "./runScript.sh", true, "./costfile.txt");\n')
-    mainCpp.write('auto best_config = atf::annealing(atf::cond::duration<std::chrono::seconds>(2))('+', '.join(tps)+')(cf);\n')
-    mainCpp.write('}\n')
-    mainCpp.close()
-    
-    #compile it
-    p = subprocess.Popen([ atf+'/build.sh' ])
-    p.wait()
-    
-    #move it over
-    
-    
-def getTuningParameter(lowLevelExpressionPath):
-    #returns the tuning parameters object of the given file
-    jsonFile = open(lowLevelExpressionPath+'_parameter.json')
-    params = json.load(jsonFile)
-    jsonFile.close()
-    return params
-    
-    
+        clearDir(runDir)  
 
 
 #TODO We don't need this anymore
@@ -843,6 +789,7 @@ else:
     if(args.highLevelRewrite): highLevelRewrite()
     if(args.memoryMappingRewrite): memoryMappingRewrite()
     if(args.parameterRewrite): parameterRewrite()
+    
     if(args.runHarness): runHarness()
     if(args.gatherTimes): gatherTimes()
     if(args.plot): plot()
@@ -857,6 +804,8 @@ else:
     if(args.findKernels): findBestAndWorst()
     if(args.gatherTimesAtf): gatherTimesAtf()
     if(args.makeTuner):prepareLowLevelTuning()
+    
+    modLlAtf.test()
 
 #    if(args.atfHarness): atfHarness() 
 #    if(args.lowLevelAtf): lowLevelAtf()
