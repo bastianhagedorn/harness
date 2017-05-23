@@ -1,11 +1,10 @@
 [
     {"_COMMENT_":
-        "Note: this file is an example file. Files like this are expected to reside next to a low level expression as <lowLevelHash>_parameter.json.
-        This comment is not part of the expected structure.",
-    "name": "gs0", "interval":{"type":"int", "from":"0", "to":"1024"}},
-    {"name": "gs1", "interval":{"type":"int", "from":"0", "to":"1024"}},
-    {"name": "gs2", "interval":{"type":"int", "from":"0", "to":"1024"}},
-    {"name": "ls0", "divide": "gs0", "interval":{"type":"int", "from":"0", "to":"1024"}},
-    {"name": "ls1", "divide": "gs1", "interval":{"type":"int", "from":"0", "to":"1024"}},
-    {"name": "ls2", "divide": "gs2", "interval":{"type":"int", "from":"0", "to":"1024"}}
+        "Note: this file is an example file. Files like this are expected to reside next to a low level expression as <lowLevelHash>_parameter.json. This comment is not part of the expected structure.",
+     "name": "gs0", "interval":{"type":"int", "from":"1", "to":"1024"}},
+    {"name": "gs1", "interval":{"type":"int", "from":"1", "to":"1024"}},
+    {"name": "gs2", "interval":{"type":"int", "from":"1", "to":"1024"}},
+    {"name": "ls0", "divide": "gs0", "interval":{"type":"int", "from":"1", "to":"1024"}},
+    {"name": "ls1", "divide": "gs1", "interval":{"type":"int", "from":"1", "to":"1024"}},
+    {"name": "ls2", "divide": "gs2", "interval":{"type":"int", "from":"1", "to":"1024"}}
 ]

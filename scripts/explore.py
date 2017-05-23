@@ -494,7 +494,6 @@ def makeLowLevelTuner(lowLevelExpressionPath):
     mainCpp = open(atf+'/examples/lowLevelLift/src/main.cpp','w')
     mainCpp.write('#include <atf.h>\n')
     mainCpp.write('int main(){\n')
-    mainCpp.write('const int N = 1024;\n')
     
     tps=[]
     for param in params:
