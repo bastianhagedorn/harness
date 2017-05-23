@@ -10,6 +10,7 @@ import configparser
 import calendar
 import csv
 import sys
+import json
  
 
 
@@ -61,14 +62,19 @@ parser.add_argument('--removeBlacklist', dest='removeBlacklist', action='store_t
         help='remove blacklisted files to enable re-running things')
 parser.add_argument('--silentExecution', dest='silentExecution', action='store_true',
         help='run the execution without output')
-parser.add_argument('--lowLevelAtf', dest='lowLevelAtf', action='store_true',
-        help='run the tuning of low level expressions with atf ccfg')
+
 parser.add_argument('config', action='store', default='config',
         help='config file')
-parser.add_argument('--atfHarness', dest='atfHarness', action='store_true',
-        help='harness run from atf')   
-parser.add_argument('--atfHarnessDir', action='store', default='store_false',
-        help='explicit dir needed for ccfg execution and cost file generation')
+
+#TODO flag naming
+parser.add_argument('--makeTuner', dest='makeTuner', action='store_true',help='just don\'t use this flag!')
+    
+#parser.add_argument('--lowLevelAtf', dest='lowLevelAtf', action='store_true',
+#        help='run the tuning of low level expressions with atf ccfg')
+#parser.add_argument('--atfHarness', dest='atfHarness', action='store_true',
+#        help='harness run from atf')   
+#parser.add_argument('--atfHarnessDir', action='store', default='store_false',
+#        help='explicit dir needed for ccfg execution and cost file generation')
 
 args = parser.parse_args()
 
@@ -104,6 +110,7 @@ configParser.read(configPath)
 ### ENVIRONMENT
 lift=envConfigParser.get('Path','Lift')
 executor=envConfigParser.get('Path','Executor')
+atf=envConfigParser.get('Path','Atf')
 tuner=envConfigParser.get('Path','Tuner')
 lowLevelTuner=envConfigParser.get('Path','LowLevelTuner')
 Rscript=envConfigParser.get('Path','Rscript')
@@ -207,6 +214,12 @@ scriptsDir = lift + "/scripts/compiled_scripts"
 def printBlue( string ):
     print(bcolors.BLUE + string + bcolors.ENDC)
     return
+
+def warn(string):
+    print(bcolors.FAIL+'[WARN] ' + bcolors.ENDC + string )
+    
+def info(string):
+    print('[INFO] ' + string )
 
 class bcolors:
     BLUE= '\033[95m'
@@ -458,6 +471,66 @@ def atfHarness():
         
         clearDir(runDir)
 
+
+def prepareLowLevelTuning():
+    printBlue("\n[INFO] Tuning low level expressions with atf -- " )
+    for fileName in os.listdir(explorationDir+'/'+expressionLower):
+        if os.path.isdir(explorationDir+'/'+expressionLower+'/'+fileName):
+            #this file contains paths of LowLevel expressions relative to the exploration dir
+            indexFile = open(explorationDir+"/"+expressionLower+"/"+fileName+"/index","r")
+            for llrelPath in indexFile:
+                llrelPath=llrelPath.strip('\n') #remove the newline
+                lowLevelPath=explorationDir+'/'+llrelPath
+                if(os.path.isfile(lowLevelPath)):
+                    lowLevelHash=os.path.basename(llrelPath)
+                    makeLowLevelTuner(lowLevelPath)
+                else:
+                    warn('Not a file: "' + lowLevelPath+'"')
+                
+
+def makeLowLevelTuner(lowLevelExpressionPath):
+    #create Tuner code
+    jsonFile = open(lowLevelExpressionPath+'_parameter.json')
+    params = json.load(jsonFile)
+    jsonFile.close()
+    mainCpp = open(atf+'/examples/lowLevelLift/src/main.cpp','w')
+    mainCpp.write('#include <atf.h>\n')
+    mainCpp.write('int main(){\n')
+    mainCpp.write('const int N = 1024;\n')
+    
+    tps=[]
+    for param in params:
+        tps.append(param['name'])
+        mainCpp.write('auto '+param['name']+' = atf::tp( "'+param['name']+'"')
+        if('interval' in param):
+            interval=param['interval']
+            mainCpp.write(', atf::interval<'+interval['type']+'>('+interval['from']+','+interval['to']+')')
+        
+        if('divides' in param):
+            mainCpp.write(', atf::divides('+param[divides]+')')
+                
+        mainCpp.write(');\n')
+    
+    mainCpp.write('auto cf = atf::cf::ccfg("./lowLevelExpression", "./runScript.sh", true, "./costfile.txt");\n')
+    mainCpp.write('auto best_config = atf::annealing(atf::cond::duration<std::chrono::seconds>(2))('+', '.join(tps)+')(cf);\n')
+    mainCpp.write('}\n')
+    mainCpp.close()
+    
+    #compile it
+    #p = subprocess.Popen([ atf+'/build.sh' ])
+    #p.wait()
+    
+    #move it over
+    
+    
+def getTuningParameter(lowLevelExpressionPath):
+    #returns the tuning parameters object of the given file
+    return None
+    
+    
+
+
+#TODO We don't need this anymore
 def lowLevelAtf():
     printBlue("\n[INFO] Tuning low level expressions with atf -- " )
     executedKernels =1         
@@ -476,7 +549,6 @@ def lowLevelAtf():
                         print("Processing Expression: \""+lowLevelHash+"\"\n")
                         p= subprocess.Popen([ './lowLevelLift' ],cwd=explorationDir+'/atfCcfg')
                         p.wait()
-                        
                         
                     else:
                         print("Path was not a file: \""+lowLevelPath+"\"\n")
@@ -784,7 +856,9 @@ else:
     if(args.fullAtf): exploreAtf()
     if(args.findKernels): findBestAndWorst()
     if(args.gatherTimesAtf): gatherTimesAtf()
-    if(args.atfHarness): atfHarness() 
-    if(args.lowLevelAtf): lowLevelAtf()
+    if(args.makeTuner):prepareLowLevelTuning()
+
+#    if(args.atfHarness): atfHarness() 
+#    if(args.lowLevelAtf): lowLevelAtf()
 
 os.chdir(currentDir)
