@@ -9,8 +9,6 @@ import time
 import configparser
 import calendar
 import csv
-import sys
-import json
 
 #Which module to require depends on the used flag (--atf, --llatf, --harness)
 import lowLevelTuning as executionModule
@@ -104,7 +102,7 @@ envConfigParser.read(envConf)
 # check if config exists
 print('[INFO] using explore config '+args.config)
 configPath = os.path.expanduser(args.config)
-absoluteConfigPath =os.path.realpath(configPath)
+absoluteConfigPath = os.path.realpath(configPath)
 if not os.path.exists(configPath): sys.exit("[ERROR] config file not found!")
 configParser = configparser.RawConfigParser()
 configParser.read(configPath)
@@ -193,7 +191,7 @@ if clDevice != "":
 ### ATF
 #atf = configParser.get('ATF', 'atf')
 atfCsvHeader = configParser.get('ATF', 'header')
-tunerName = configParser.get('ATF', 'tunerName')  
+tunerName = configParser.get('ATF', 'tunerName')
 
 ### CSV
 #csvHeader = "kernel,time,lsize0,lsize1,lsize2"
@@ -803,10 +801,12 @@ else:
     if(args.fullAtf): exploreAtf()
     if(args.findKernels): findBestAndWorst()
     if(args.gatherTimesAtf): gatherTimesAtf()
-    if(args.makeTuner):prepareLowLevelTuning()
     
-    modLlAtf.test()
-
+    os.chdir(currentDir)
+    if(args.makeTuner):
+        executionModule.init(envConfigParser, configParser)
+        executionModule.run()
+    
 #    if(args.atfHarness): atfHarness() 
 #    if(args.lowLevelAtf): lowLevelAtf()
 
