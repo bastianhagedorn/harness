@@ -32,7 +32,7 @@
 	},
 	"Harness":{
 		"Name":"harness_convolution2D",
-		"Args":"-p 2 -m 1024 -n 1024 -i 10"
+		"Args":"-m 1024 -n 1024 -i 10"
 	},
 	"ATF":{
 		"Header":"time,number_of_valid_evaluated_configs,evaluations_required_to_find_best_found_result,valid_evaluations_required_to_find_best_found_result,GS,LS,kernel",
