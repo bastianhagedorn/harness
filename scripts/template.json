@@ -4,8 +4,8 @@
      "name": "gs0", "interval":{"type":"int", "from":"1", "to":"1024"}},
     {"name": "gs1", "interval":{"type":"int", "from":"1", "to":"1024"}},
     {"name": "gs2", "interval":{"type":"int", "from":"1", "to":"1024"}},
-    {"name": "ls0", "interval":{"type":"int", "from":"1", "to":"1024"}, "divide": "gs0"},
-    {"name": "ls1", "interval":{"type":"int", "from":"1", "to":"1024"}, "divide": "gs1"},
-    {"name": "ls2", "interval":{"type":"int", "from":"1", "to":"1024"}, "divide": "gs2"},
-    {"name":"v__1", "interval":{"type":"int", "from":"1", "to":"1024"}, "divide": "gs0"}
+    {"name": "ls0", "interval":{"type":"int", "from":"1", "to":"1024"}, "divides": "gs0"},
+    {"name": "ls1", "interval":{"type":"int", "from":"1", "to":"1024"}, "divides": "gs1"},
+    {"name": "ls2", "interval":{"type":"int", "from":"1", "to":"1024"}, "divides": "gs2"},
+    {"name":"v__1", "interval":{"type":"int", "from":"1", "to":"1024"}, "divides": "gs0"}
 ]

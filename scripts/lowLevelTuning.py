@@ -91,8 +91,8 @@ def run():
                 lowLevelPath=_explorationDir+'/'+llrelPath
                 if(os.path.isfile(lowLevelPath)):
                     printBlue('[INFO] Creating Tunner of '+llrelPath)
-                    lowLevelHash=os.path.basename(llrelPath)
                     _prepareTuner(lowLevelPath)
+                    #lowLevelHash=os.path.basename(llrelPath)
                     info('Skipping the Tuner execution.')
                     #p = subprocess.Popen(['./lowLevelLift'], cwd=_explorationDir+'/atfCcfg')
                     #p.wait()
@@ -132,7 +132,7 @@ def _prepareTuner(lowLevelExpressionPath):
     #create Tuner code
     mainCpp = open(_atf+'/examples/lowLevelLift/src/main.cpp','w')
     #and runScript code
-    runScript = open(tunerDir+'/runScript.sh','w')
+    runScript = open(tunerDir+'/runScript.py','w')
     
     mainCpp.write('#include <atf.h>\n')
     mainCpp.write('int main(){\n')
@@ -155,16 +155,17 @@ def _prepareTuner(lowLevelExpressionPath):
             mainCpp.write(', atf::interval<'+interval['type']+'>('+interval['from']+','+interval['to']+')')
         
         if('divides' in param):
-            mainCpp.write(', atf::divides('+param[divides]+')')
+            mainCpp.write(', atf::divides('+param['divides']+')')
                 
         mainCpp.write(');\n')
     
     runScript.write('p = subprocess.Popen(["'+_liftScripts+'/KernelGenerator", ')
     runScript.write(  '"--gs", "'+','.join(['<$TP:'+v+'>' for v in gsvars])+'", ')
-    runScript.write(  '"--ls", "'+'.'.join(['<$TP:'+v+'>' for v in lsvars])+'", ')
-    runScript.write('"--vars", "'+'.'.join(['<$TP:'+v+'>' for v in tpvars])+'"])\n')
+    runScript.write(  '"--ls", "'+','.join(['<$TP:'+v+'>' for v in lsvars])+'", ')
+    runScript.write('"--vars", "'+','.join(['<$TP:'+v+'>' for v in tpvars])+'", ')
+    runScript.write('"'+lowLevelExpressionPath+'"])\n')
     runScript.write('p.wait()\n')
-    mainCpp.write('auto cf = atf::cf::ccfg("./runScript.sh", "./runScript.sh", true, "./costfile.txt");\n')
+    mainCpp.write('auto cf = atf::cf::ccfg("./runScript.py", "./runScript.py", true, "./costfile.txt");\n')
     gsvars.extend(lsvars)
     gsvars.extend(tpvars)
     mainCpp.write('auto best_config = atf::annealing(atf::cond::duration<std::chrono::seconds>(2))('+', '.join(gsvars)+')(cf);\n')
@@ -180,11 +181,7 @@ def _prepareTuner(lowLevelExpressionPath):
     #move it over
     shutil.copy2(_tuner+'/lowLevelLift', _explorationDir+'/atfCcfg')
     makeExecutable(tunerDir+'/lowLevelLift')
-    makeExecutable(tunerDir+'/runScript.sh')
-
-def _wrapAsTps(vars):
-    #list comprehension. 
-    return ['<$TP:'+x+'>' for x in vars]        
+    makeExecutable(tunerDir+'/runScript.py')   
     
 def _getTuningParameter(lowLevelExpressionPath):
     #TODO call Analyzer if parameter.json does not exist
