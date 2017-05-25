@@ -1,0 +1,50 @@
+{
+	"General":{
+		"Expression":"stencil1D",
+		"InputSize": "1024",
+		"Lift":"/home/martin/PJS17/lift/",
+		"Executor":"/home/martin/PJS17/harness/",
+		"Name":"stencil",
+		"Tuner":"/home/martin/PJS17/pvs-pjs-ss17/atf/bld/examples/genericLiftKernel"
+	},
+	"HighLevelRewrite":{
+		"Depth":"6",
+		"Distance":"8",
+		"ExplorationDepth":"6",
+		"Repetition":"1",
+		"Collection":"convolution1D",
+		"OnlyLower":true
+	},
+	"MemoryMappingRewrite":{
+		"UnrollReduce":true,
+		"Global0":true,
+		"Global01":false,
+		"Global10":false,
+		"Global012":false,
+		"Global210":false,
+		"Group0":false,
+		"Group01":false,
+		"Group10":false
+	},
+	"ParameterRewrite":{
+		"Sequential":false,
+		"Settings":"stencil1D.json",
+		"DisableNDRangeInjection":true,
+		"ExploreNDRange":false,
+		"SampleNDRange":"10"
+	},
+	"Harness":{
+		"Name":"harness_stencil",
+		"Args":"-p 0 -d 0 -s 1024"
+	},
+	"ATF":{
+		"Header":"time,number_of_valid_evaluated_configs,evaluations_required_to_find_best_found_result,valid_evaluations_required_to_find_best_found_result,GS,LS,kernel",
+		"TunerName":"genericLiftKernel"
+	},
+	"CSV":{
+		"Header":"harness_stencil"
+	},
+	"R":{
+		"Script":"/home/martin/PJS17/violin.r"
+	}
+}
