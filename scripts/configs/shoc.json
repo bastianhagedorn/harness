@@ -2,10 +2,7 @@
 	"General":{
 		"Expression":"shocStencil2D",
 		"InputSize": 8194,
-		"Lift":"/home/martin/PJS17/lift/",
-		"Executor":"/home/martin/PJS17/harness/",
-		"Name":"testrun",
-		"Tuner":"/home/martin/PJS17/pvs-pjs-ss17/atf/bld/examples/genericLiftKernel"
+		"Name":"testrun"
 	},
 	"HighLevelRewrite":{
 		"Depth":6,
@@ -35,7 +32,7 @@
 	},
 	"Harness":{
 		"Name":"harness_shocStencil2D",
-		"Args":"-p 2 -m 8194 -n 8194 -i 10"
+		"Args":"-m 8194 -n 8194 -i 10"
 	},
 	"ATF":{
 		"Header":"time,number_of_valid_evaluated_configs,evaluations_required_to_find_best_found_result,valid_evaluations_required_to_find_best_found_result,GS,LS,kernel",
@@ -43,8 +40,5 @@
 	},
 	"CSV":{
 		"Header":"kernel,time,glsize0,glsize1,glsize2,lsize0,lsize1,lsize2"
-	},
-	"R":{
-		"Script":"/home/bastian/development/exploration/violinShoc.r"
 	}
 }
