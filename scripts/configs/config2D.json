@@ -40,6 +40,5 @@
 	},
 	"CSV":{
 		"Header":"kernel,time,glsize0,glsize1,glsize2,lsize0,lsize1,lsize2"
-	},
-
+	}
 }
