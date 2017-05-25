@@ -97,8 +97,8 @@ else:
     mkEnvironment(envConf)
     if not os.path.exists(envConf):
         sys.exit("[ERROR] environment config file was not found and could not be created.")
-json_envFile = open(envConf).read()
-json_envConfig = json.loads(json_envFile)
+json_envFile = open(envConf)
+json_envConfig = json.load(json_envFile)
 
 
 # check if config exists
