@@ -98,7 +98,7 @@ else:
     if not os.path.exists(envConf):
         sys.exit("[ERROR] environment config file was not found and could not be created.")
 json_envFile = open(envConf)
-json_envConfig = json.load(json_envFile)
+json_envConfig = json.loads(json_envFile)
 
 
 # check if config exists
@@ -107,7 +107,7 @@ configPath = os.path.expanduser(args.config)
 absoluteConfigPath = os.path.realpath(configPath)
 if not os.path.exists(configPath): sys.exit("[ERROR] config file not found!")
 #open Json config
-json_file = open(absoluteConfigPath).read()
+json_file = open(absoluteConfigPath)
 json_config = json.loads(json_file)
 
 
