@@ -98,7 +98,7 @@ else:
     if not os.path.exists(envConf):
         sys.exit("[ERROR] environment config file was not found and could not be created.")
 json_envFile = open(envConf)
-json_envConfig = json.loads(json_envFile)
+json_envConfig = json.load(json_envFile)
 
 
 # check if config exists
@@ -108,7 +108,7 @@ absoluteConfigPath = os.path.realpath(configPath)
 if not os.path.exists(configPath): sys.exit("[ERROR] config file not found!")
 #open Json config
 json_file = open(absoluteConfigPath)
-json_config = json.loads(json_file)
+json_config = json.load(json_file)
 
 
 
@@ -807,7 +807,7 @@ else:
     
     os.chdir(currentDir)
     if(args.makeTuner):
-        executionModule.init(json_envConfig, json_Config)
+        executionModule.init(json_envConfig, json_config)
         executionModule.run()
     
 #    if(args.atfHarness): atfHarness() 

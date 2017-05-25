@@ -10,7 +10,7 @@ import json
 
 
 ### Module attributes ###
-#Note: Inside functions We can ready these without any problems but if we want to assign them, we need to explicitly tell the function scope that this variable is not local.
+#Note: Inside functions We can read these without any problems but if we want to assign them, we need to explicitly tell the function scope that this variable is not local.
 #Also note: these can be accessed from the outside of the module but one should not do this.
 _ready=False
 #environment
@@ -92,10 +92,8 @@ def run():
                 if(os.path.isfile(lowLevelPath)):
                     printBlue('[INFO] Creating Tunner of '+llrelPath)
                     _prepareTuner(lowLevelPath)
-                    #lowLevelHash=os.path.basename(llrelPath)
-                    info('Skipping the Tuner execution.')
-                    #p = subprocess.Popen(['./lowLevelLift'], cwd=_explorationDir+'/atfCcfg')
-                    #p.wait()
+                    p = subprocess.Popen(['./lowLevelLift'], cwd=_explorationDir+'/atfCcfg')
+                    p.wait()
                     
                 else:
                     warn('Not a file: "' + lowLevelPath+'"')
@@ -162,13 +160,13 @@ def _prepareTuner(lowLevelExpressionPath):
     runScript.write('p = subprocess.Popen(["'+_liftScripts+'/KernelGenerator", ')
     runScript.write(  '"--gs", "'+','.join(['<$TP:'+v+'>' for v in gsvars])+'", ')
     runScript.write(  '"--ls", "'+','.join(['<$TP:'+v+'>' for v in lsvars])+'", ')
-    runScript.write('"--vars", "'+','.join(['<$TP:'+v+'>' for v in tpvars])+'", ')
+    runScript.write('"--vars", "1024,'+','.join(['<$TP:'+v+'>' for v in tpvars])+'", ')
     runScript.write('"'+lowLevelExpressionPath+'"])\n')
     runScript.write('p.wait()\n')
     mainCpp.write('auto cf = atf::cf::ccfg("./runScript.py", "./runScript.py", true, "./costfile.txt");\n')
     gsvars.extend(lsvars)
     gsvars.extend(tpvars)
-    mainCpp.write('auto best_config = atf::annealing(atf::cond::duration<std::chrono::seconds>(2))('+', '.join(gsvars)+')(cf);\n')
+    mainCpp.write('auto best_config = atf::annealing(atf::cond::duration<std::chrono::seconds>(60))('+', '.join(gsvars)+')(cf);\n')
     mainCpp.write('}\n')
     
     mainCpp.close()
@@ -187,8 +185,9 @@ def _getTuningParameter(lowLevelExpressionPath):
     #TODO call Analyzer if parameter.json does not exist
     
     #copy dummy file for testing without the Analyzer
-    scriptsDir = os.path.dirname(os.path.realpath(__file__))
-    shutil.copy2(scriptsDir+'/template.json',lowLevelExpressionPath+'_parameter.json')
+    if(not os.path.isfile(lowLevelExpressionPath+'_parameter.json')):
+        scriptsDir = os.path.dirname(os.path.realpath(__file__))
+        shutil.copy2(scriptsDir+'/template.json',lowLevelExpressionPath+'_parameter.json')
     
     
     #read the json
