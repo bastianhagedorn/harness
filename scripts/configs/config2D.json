@@ -2,10 +2,7 @@
 	"General":{
 		"Expression":"convolution2D",
 		"InputSize": 1024,
-		"Lift":"/home/martin/PJS17/lift/",
-		"Executor":"/home/martin/PJS17/harness/",
-		"Name":"reduceSeq",
-		"Tuner":"/home/martin/PJS17/pvs-pjs-ss17/atf/bld/examples/genericLiftKernel"
+		"Name":"reduceSeq"
 	},
 	"HighLevelRewrite":{
 		"Depth":6,
