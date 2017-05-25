@@ -49,17 +49,17 @@ def init(envConf, explorationConf):
     global _ready
     if(_ready): return
     #read the environment values required for this module to work
-    _lift = os.path.normpath(envConf.get('Path','Lift'))
-    _atf = os.path.normpath(envConf.get('Path','Atf'))
-    _tuner = os.path.normpath(envConf.get('Path','LowLevelTuner'))
-    _clPlattform=envConf.get('OpenCL','Platform')
-    _clDevice=envConf.get('OpenCL','Device')
+    _lift = os.path.normpath(envConf['Path']['Lift'])
+    _atf = os.path.normpath(envConf['Path']['Atf'])
+    _tuner = os.path.normpath(envConf['Path']['LowLevelTuner'])
+    _clPlattform=envConf['OpenCL']['Platform']
+    _clDevice=envConf['OpenCL']['Device']
     
     #read the explore values required for this module to work
-    _expression = explorationConf.get('General', 'Expression')
-    _name = explorationConf.get('General', 'Name')
+    _expression = explorationConf['General']['Expression']
+    _name = explorationConf['General']['Name']
     if (_name == ""): _name = str(calendar.timegm(time.gmtime()))
-    _inputSize = explorationConf.get('General', 'InputSize')
+    _inputSize = explorationConf['General']['InputSize']
     
     _cwd = os.getcwd()
     _explorationDir = _cwd + "/" + _name

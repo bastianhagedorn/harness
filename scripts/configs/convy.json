@@ -1,0 +1,44 @@
+{
+	"General":{
+		"Expression":"convolutionSeparableY",
+		"InputSize": 8192,
+		"Name":"testrun"
+	},
+	"HighLevelRewrite":{
+		"Depth":6,
+		"Distance":9,
+		"ExplorationDepth":5,
+		"Repetition":1,
+		"Collection":"convolution2D",
+		"OnlyLower":false
+	},
+	"MemoryMappingRewrite":{
+		"UnrollReduce":true,
+		"Global0":false,
+		"Global01":false,
+		"Global10":false,
+		"Global012":false,
+		"Global210":false,
+		"Group0":false,
+		"Group01":false,
+		"Group10":true
+	},
+	"ParameterRewrite":{
+		"Sequential":false,
+		"Settings":"shocStencil2D.json",
+		"DisableNDRangeInjection":false,
+		"ExploreNDRange":true,
+		"SampleNDRange":10
+	},
+	"Harness":{
+		"Name":"harness_convolutionSeparableY",
+		"Args":"-m 1024 -n 1024 -i 10"
+	},
+	"ATF":{
+		"Header":"time,number_of_valid_evaluated_configs,evaluations_required_to_find_best_found_result,valid_evaluations_required_to_find_best_found_result,GS,LS,kernel",
+		"TunerName":"genericLiftKernel"
+	},
+	"CSV":{
+		"Header":"kernel,time,glsize0,glsize1,glsize2,lsize0,lsize1,lsize2"
+	}
+}

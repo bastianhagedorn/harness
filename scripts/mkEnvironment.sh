@@ -49,17 +49,20 @@ read -e -i "$DEFAULT_CL_DEVICE" -p "Which openCL device do you want to use? " cl
 
 # write the file
 cat <<EOF > "$confFile"
-[Path]
-Lift = $liftLocation
-Executor = $executorLocation
-Atf = $atfLocation
-Tuner = $tunerLocation
-LowLevelTuner = $llTunerLocation
-Rscript = $plotscriptLocation
-
-[OpenCL]
-Platform = $clPlattform
-Device = $clDevice
+{
+	"Path":{
+		"Lift":	"$liftLocation",
+		"Executor": "$executorLocation",
+		"Atf": "$atfLocation",
+		"Tuner": "$tunerLocation",
+		"LowLevelTuner": "$llTunerLocation",
+		"Rscript": "$plotscriptLocation"
+	},
+	"OpenCL":{
+		"Platform": "$clPlattform",
+		"Device": "$clDevice"
+	}
+}
 EOF
 
 printf "\nConfig file created and ready to use\n\n"

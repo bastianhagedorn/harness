@@ -9,6 +9,7 @@ import time
 import configparser
 import calendar
 import csv
+import json
 
 #Which module to require depends on the used flag (--atf, --llatf, --harness)
 import lowLevelTuning as executionModule
@@ -26,7 +27,7 @@ import lowLevelTuning as executionModule
 
 ### ARGPARSER ########################################################
 parser = argparse.ArgumentParser( description='Lift exploration utility')
-parser.add_argument('--environment', dest='envConf', action='store', default='~/.lift/environment.conf',
+parser.add_argument('--environment', dest='envConf', action='store', default='~/.lift/environment.json',
         help='environment config. If there is no such file the mkEnvironemnt.sh will be executed.')
 parser.add_argument('--clean', dest='clean', action='store_true',
         help='clean all generated folders and log-files')
@@ -96,29 +97,31 @@ else:
     mkEnvironment(envConf)
     if not os.path.exists(envConf):
         sys.exit("[ERROR] environment config file was not found and could not be created.")
-envConfigParser = configparser.RawConfigParser()
-envConfigParser.read(envConf)
+json_envFile = open(envConf)
+json_envConfig = json.loads(json_envFile)
+
 
 # check if config exists
 print('[INFO] using explore config '+args.config)
 configPath = os.path.expanduser(args.config)
 absoluteConfigPath = os.path.realpath(configPath)
 if not os.path.exists(configPath): sys.exit("[ERROR] config file not found!")
-configParser = configparser.RawConfigParser()
-configParser.read(configPath)
+#open Json config
+json_file = open(absoluteConfigPath)
+json_config = json.loads(json_file)
 
 
 
 ### ENVIRONMENT
-lift=envConfigParser.get('Path','Lift')
-executor=envConfigParser.get('Path','Executor')
-atf=envConfigParser.get('Path','Atf')
-tuner=envConfigParser.get('Path','Tuner')
-lowLevelTuner=envConfigParser.get('Path','LowLevelTuner')
-Rscript=envConfigParser.get('Path','Rscript')
+lift=json_envConfig["Path"]["Lift"]
+executor=json_envConfig["Path"]["Executor"]
+atf=json_envConfig["Path"]["Atf"]
+tuner=json_envConfig["Path"]["Tuner"]
+lowLevelTuner=json_envConfig["Path"]["LowLevelTuner"]
+Rscript=json_envConfig["Path"]["Rscript"]
 
-clPlattform=envConfigParser.get('OpenCL','Platform')
-clDevice=envConfigParser.get('OpenCL','Device')
+clPlattform=json_envConfig["OpenCL"]["Platform"]
+clDevice=json_envConfig["OpenCL"]["Device"]
 
     
 lift = os.path.normpath(lift)
@@ -129,79 +132,79 @@ Rscript = os.path.normpath(Rscript)
 
 
 ### GENERAL
-expression = configParser.get('General', 'Expression')
-inputSize = configParser.get('General', 'InputSize')
-name = configParser.get('General', 'Name')
+expression = json_config["General"]["Expression"]
+inputSize = json_config["General"]["InputSize"]
+name = json_config["General"]["Name"]
 if (name == ""): name = str(calendar.timegm(time.gmtime()))
 #secondsSinceEpoch = str(calendar.timegm(time.gmtime()))
 
 ### HIGH-LEVEL-REWRITE
-depth = configParser.get('HighLevelRewrite', 'Depth')
-distance = configParser.get('HighLevelRewrite', 'Distance')
-explorationDepth = configParser.get('HighLevelRewrite', 'ExplorationDepth')
-repetitions = configParser.get('HighLevelRewrite', 'Repetition')
-collection = configParser.get('HighLevelRewrite', 'Collection')
-onlyLower = configParser.get('HighLevelRewrite', 'OnlyLower')
-highLevelRewriteArgs = " --depth " + depth + " --distance " + distance
-highLevelRewriteArgs += " --explorationDepth " + explorationDepth + " --repetition " + repetitions
+depth = json_config["HighLevelRewrite"]["Depth"]
+if (name == ""): name = str(calendar.timegm(time.gmtime()))
+distance = json_config["HighLevelRewrite"]["Distance"]
+explorationDepth = json_config['HighLevelRewrite']['ExplorationDepth']
+repetitions = json_config["HighLevelRewrite"]["Repetition"]
+collection = json_config["HighLevelRewrite"]["Collection"]
+onlyLower = json_config["HighLevelRewrite"]["OnlyLower"]
+highLevelRewriteArgs = " --depth " + str(depth) + " --distance " + str(distance)
+highLevelRewriteArgs += " --explorationDepth " + str(explorationDepth) + " --repetition " + str(repetitions)
 highLevelRewriteArgs += " --collection " + collection
 if(onlyLower == "true"): highLevelRewriteArgs += " --onlyLower"
 
 ### MEMORY-MAPPING-REWRITE
-unrollReduce= configParser.get('MemoryMappingRewrite', 'UnrollReduce')
-global0 = configParser.get('MemoryMappingRewrite', 'Global0')
-global01 = configParser.get('MemoryMappingRewrite', 'Global01')
-global10 = configParser.get('MemoryMappingRewrite', 'Global10')
-global012 = configParser.get('MemoryMappingRewrite', 'Global012')
-global210 = configParser.get('MemoryMappingRewrite', 'Global210')
-group0 = configParser.get('MemoryMappingRewrite', 'Group0')
-group01 = configParser.get('MemoryMappingRewrite', 'Group01')
-group10 = configParser.get('MemoryMappingRewrite', 'Group10')
+unrollReduce= json_config["MemoryMappingRewrite"]["UnrollReduce"]
+global0 = json_config["MemoryMappingRewrite"]["Global0"]
+global01 = json_config["MemoryMappingRewrite"]["Global01"]
+global10 = json_config["MemoryMappingRewrite"]["Global10"]
+global012 = json_config["MemoryMappingRewrite"]["Global012"]
+global210 = json_config["MemoryMappingRewrite"]["Global210"]
+group0 = json_config["MemoryMappingRewrite"]["Group0"]
+group01 = json_config["MemoryMappingRewrite"]["Group01"]
+group10 = json_config["MemoryMappingRewrite"]["Group10"]
 memoryMappingRewriteArgs = ""
-if(global0 == "true"): memoryMappingRewriteArgs += " --global0"
-if(global01 == "true"): memoryMappingRewriteArgs += " --global01"
-if(global10 == "true"): memoryMappingRewriteArgs += " --global10"
-if(global012 == "true"): memoryMappingRewriteArgs += " --global012"
-if(global210 == "true"): memoryMappingRewriteArgs += " --global210"
-if(group0 == "true"): memoryMappingRewriteArgs += " --group0"
-if(group01 == "true"): memoryMappingRewriteArgs += " --group01"
-if(group10 == "true"): memoryMappingRewriteArgs += " --group10"
-if(unrollReduce  == "true"): memoryMappingRewriteArgs += " --unrollReduce"
+if(global0 == True): memoryMappingRewriteArgs += " --global0"
+if(global01 == True): memoryMappingRewriteArgs += " --global01"
+if(global10 == True): memoryMappingRewriteArgs += " --global10"
+if(global012 == True): memoryMappingRewriteArgs += " --global012"
+if(global210 == True): memoryMappingRewriteArgs += " --global210"
+if(group0 == True): memoryMappingRewriteArgs += " --group0"
+if(group01 == True): memoryMappingRewriteArgs += " --group01"
+if(group10 == True): memoryMappingRewriteArgs += " --group10"
+if(unrollReduce  == True): memoryMappingRewriteArgs += " --unrollReduce"
 
 ### PARAMETER-REWRITE
-settings = configParser.get('ParameterRewrite', 'Settings')
-exploreNDRange = configParser.get('ParameterRewrite', 'ExploreNDRange')
-sampleNDRange = configParser.get('ParameterRewrite', 'SampleNDRange')
-disableNDRangeInjection = configParser.get('ParameterRewrite', 'DisableNDRangeInjection')
-sequential = configParser.get('ParameterRewrite', 'Sequential')
+settings = json_config["ParameterRewrite"]["Settings"]
+exploreNDRange = json_config["ParameterRewrite"]["ExploreNDRange"]
+sampleNDRange = json_config["ParameterRewrite"]["SampleNDRange"]
+disableNDRangeInjection = json_config["ParameterRewrite"]["DisableNDRangeInjection"]
+sequential = json_config["ParameterRewrite"]["Sequential"]
 parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
-if(sequential == "true"): parameterRewriteArgs += " --sequential"
-if(disableNDRangeInjection == "true"): parameterRewriteArgs += " --disableNDRangeInjection"
-if(exploreNDRange == "true"): parameterRewriteArgs += " --exploreNDRange"
-if (exploreNDRange == "true")and not (sampleNDRange == ""): parameterRewriteArgs += " --sampleNDRange " + sampleNDRange
+if(sequential == True): parameterRewriteArgs += " --sequential"
+if(disableNDRangeInjection == True): parameterRewriteArgs += " --disableNDRangeInjection"
+if(exploreNDRange == True): parameterRewriteArgs += " --exploreNDRange"
+if (exploreNDRange == True)and not (sampleNDRange == ''): parameterRewriteArgs += " --sampleNDRange " + str(sampleNDRange)
 
 ### HARNESSS
-harness = configParser.get('Harness', 'Name')
-harnessArgs = "" + configParser.get('Harness', 'Args')
+harness = json_config["Harness"]["Name"]
+harnessArgs = "" + json_config["Harness"]["Args"]
 if clPlattform != "":
     harnessArgs += ' -p ' + clPlattform
 if clDevice != "":
     harnessArgs += ' -d ' + clDevice
 
 ### ATF
-#atf = configParser.get('ATF', 'atf')
-atfCsvHeader = configParser.get('ATF', 'header')
-tunerName = configParser.get('ATF', 'tunerName')
+atfCsvHeader = json_config["ATF"]["Header"]
+tunerName = json_config["ATF"]["TunerName"]
 
 ### CSV
 #csvHeader = "kernel,time,lsize0,lsize1,lsize2"
-csvHeader = configParser.get('CSV', 'Header')
-epochTimeCsv = "time_" + inputSize +  "_" + name + ".csv"
-timeCsv = "time_" + inputSize + ".csv"
-blacklistCsv = "blacklist_" + inputSize + ".csv"
+csvHeader =json_config["CSV"]["Header"]
+epochTimeCsv = "time_" + str(inputSize) +  "_" + name + ".csv"
+timeCsv = "time_" + str(inputSize) + ".csv"
+blacklistCsv = "blacklist_" + str(inputSize) + ".csv"
 
 ### R
-output = expression + "_" + inputSize +  "_" + name + ".pdf"
+output = expression + "_" + str(inputSize) +  "_" + name + ".pdf"
 RscriptArgs = " --file " + epochTimeCsv + " --out " + output
 
 ### DIRECTORIES
@@ -804,7 +807,7 @@ else:
     
     os.chdir(currentDir)
     if(args.makeTuner):
-        executionModule.init(envConfigParser, configParser)
+        executionModule.init(json_envConfig, json_Config)
         executionModule.run()
     
 #    if(args.atfHarness): atfHarness() 
