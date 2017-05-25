@@ -4,16 +4,16 @@
 		"InputSize": 1024,
 		"Lift":"/home/martin/PJS17/lift/",
 		"Executor":"/home/martin/PJS17/harness/",
-		"Name":"stencil",
+		"Name":"reduceSeq",
 		"Tuner":"/home/martin/PJS17/pvs-pjs-ss17/atf/bld/examples/genericLiftKernel"
 	},
 	"HighLevelRewrite":{
 		"Depth":6,
 		"Distance":8,
-		"ExplorationDepth":6,
+		"ExplorationDepth":5,
 		"Repetition":1,
 		"Collection":"convolution1D",
-		"OnlyLower":true
+		"OnlyLower":false
 	},
 	"MemoryMappingRewrite":{
 		"UnrollReduce":true,
@@ -29,13 +29,13 @@
 	"ParameterRewrite":{
 		"Sequential":false,
 		"Settings":"stencil1D.json",
-		"DisableNDRangeInjection":true,
-		"ExploreNDRange":false,
+		"DisableNDRangeInjection":false,
+		"ExploreNDRange":true,
 		"SampleNDRange":10
 	},
 	"Harness":{
 		"Name":"harness_stencil",
-		"Args":"-p 0 -d 0 -s 1024"
+		"Args":"-p 2 -s 1024 "
 	},
 	"ATF":{
 		"Header":"time,number_of_valid_evaluated_configs,evaluations_required_to_find_best_found_result,valid_evaluations_required_to_find_best_found_result,GS,LS,kernel",

@@ -29,7 +29,7 @@
 	"ParameterRewrite":{
 		"Sequential":false,
 		"Settings":"stencil1D.json",
-		"DisableNDRangeInjection":true,
+		"DisableNDRangeInjection":false,
 		"ExploreNDRange":false,
 		"SampleNDRange":10
 	},

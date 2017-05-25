@@ -27,7 +27,7 @@ import lowLevelTuning as executionModule
 
 ### ARGPARSER ########################################################
 parser = argparse.ArgumentParser( description='Lift exploration utility')
-parser.add_argument('--environment', dest='envConf', action='store', default='~/.lift/environment.conf',
+parser.add_argument('--environment', dest='envConf', action='store', default='~/.lift/environment.json',
         help='environment config. If there is no such file the mkEnvironemnt.sh will be executed.')
 parser.add_argument('--clean', dest='clean', action='store_true',
         help='clean all generated folders and log-files')
@@ -97,32 +97,31 @@ else:
     mkEnvironment(envConf)
     if not os.path.exists(envConf):
         sys.exit("[ERROR] environment config file was not found and could not be created.")
-envConfigParser = configparser.RawConfigParser()
-envConfigParser.read(envConf)
+json_envFile = open(envConf).read()
+json_envConfig = json.loads(json_envFile)
+
 
 # check if config exists
 print('[INFO] using explore config '+args.config)
 configPath = os.path.expanduser(args.config)
 absoluteConfigPath = os.path.realpath(configPath)
 if not os.path.exists(configPath): sys.exit("[ERROR] config file not found!")
-configParser = configparser.RawConfigParser()
-configParser.read(configPath)
 #open Json config
 json_file = open(absoluteConfigPath).read()
 json_config = json.loads(json_file)
-print(json.dumps(json_config))
+
 
 
 ### ENVIRONMENT
-lift=envConfigParser.get('Path','Lift')
-executor=envConfigParser.get('Path','Executor')
-atf=envConfigParser.get('Path','Atf')
-tuner=envConfigParser.get('Path','Tuner')
-lowLevelTuner=envConfigParser.get('Path','LowLevelTuner')
-Rscript=envConfigParser.get('Path','Rscript')
+lift=json_envConfig["Path"]["Lift"]
+executor=json_envConfig["Path"]["Executor"]
+atf=json_envConfig["Path"]["Atf"]
+tuner=json_envConfig["Path"]["Tuner"]
+lowLevelTuner=json_envConfig["Path"]["LowLevelTuner"]
+Rscript=json_envConfig["Path"]["Rscript"]
 
-clPlattform=envConfigParser.get('OpenCL','Platform')
-clDevice=envConfigParser.get('OpenCL','Device')
+clPlattform=json_envConfig["OpenCL"]["Platform"]
+clDevice=json_envConfig["OpenCL"]["Device"]
 
     
 lift = os.path.normpath(lift)
@@ -141,14 +140,14 @@ if (name == ""): name = str(calendar.timegm(time.gmtime()))
 
 ### HIGH-LEVEL-REWRITE
 depth = json_config["HighLevelRewrite"]["Depth"]
-if (name == ""): name = str(calendar.timegm(
+if (name == ""): name = str(calendar.timegm(time.gmtime()))
 distance = json_config["HighLevelRewrite"]["Distance"]
 explorationDepth = json_config['HighLevelRewrite']['ExplorationDepth']
 repetitions = json_config["HighLevelRewrite"]["Repetition"]
 collection = json_config["HighLevelRewrite"]["Collection"]
 onlyLower = json_config["HighLevelRewrite"]["OnlyLower"]
-highLevelRewriteArgs = " --depth " + depth + " --distance " + distance
-highLevelRewriteArgs += " --explorationDepth " + explorationDepth + " --repetition " + repetitions
+highLevelRewriteArgs = " --depth " + str(depth) + " --distance " + str(distance)
+highLevelRewriteArgs += " --explorationDepth " + str(explorationDepth) + " --repetition " + str(repetitions)
 highLevelRewriteArgs += " --collection " + collection
 if(onlyLower == "true"): highLevelRewriteArgs += " --onlyLower"
 
@@ -183,7 +182,7 @@ parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings
 if(sequential == True): parameterRewriteArgs += " --sequential"
 if(disableNDRangeInjection == True): parameterRewriteArgs += " --disableNDRangeInjection"
 if(exploreNDRange == True): parameterRewriteArgs += " --exploreNDRange"
-if (exploreNDRange == True)and not (sampleNDRange == null): parameterRewriteArgs += " --sampleNDRange " + sampleNDRange
+if (exploreNDRange == True)and not (sampleNDRange == ''): parameterRewriteArgs += " --sampleNDRange " + str(sampleNDRange)
 
 ### HARNESSS
 harness = json_config["Harness"]["Name"]
@@ -200,12 +199,12 @@ tunerName = json_config["ATF"]["TunerName"]
 ### CSV
 #csvHeader = "kernel,time,lsize0,lsize1,lsize2"
 csvHeader =json_config["CSV"]["Header"]
-epochTimeCsv = "time_" + inputSize +  "_" + name + ".csv"
-timeCsv = "time_" + inputSize + ".csv"
-blacklistCsv = "blacklist_" + inputSize + ".csv"
+epochTimeCsv = "time_" + str(inputSize) +  "_" + name + ".csv"
+timeCsv = "time_" + str(inputSize) + ".csv"
+blacklistCsv = "blacklist_" + str(inputSize) + ".csv"
 
 ### R
-output = expression + "_" + inputSize +  "_" + name + ".pdf"
+output = expression + "_" + str(inputSize) +  "_" + name + ".pdf"
 RscriptArgs = " --file " + epochTimeCsv + " --out " + output
 
 ### DIRECTORIES
@@ -808,7 +807,7 @@ else:
     
     os.chdir(currentDir)
     if(args.makeTuner):
-        executionModule.init(envConfigParser, configParser)
+        executionModule.init(json_envConfig, json_Config)
         executionModule.run()
     
 #    if(args.atfHarness): atfHarness() 
