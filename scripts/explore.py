@@ -216,13 +216,16 @@ plotsDir = "plots"
 scriptsDir = lift + "/scripts/compiled_scripts"
 
 # HELPER FUNCTIONS #################################################
+#TODO move to explore util module
 def printBlue( string ):
     print(bcolors.BLUE + string + bcolors.ENDC)
     return
 
+#TODO move to explore util module
 def warn(string):
     print(bcolors.FAIL+'[WARN] ' + bcolors.ENDC + string )
     
+#TODO move to explore util module
 def info(string):
     print('[INFO] ' + string )
 
@@ -234,10 +237,12 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
+#TODO move to explore util module
 def clearDir(dirname):
     for f in os.listdir(dirname):
         silentremove(f)
 
+#TODO move to explore util module
 def silentremove(filename):
     try:
         os.remove(filename)
@@ -245,6 +250,7 @@ def silentremove(filename):
         if e.errno != errno.ENOENT: # errno.ENOENT = no such file or directory
             raise # re-raise exception if a different error occured
 
+#TODO move to explore util module
 def silent_mkdir(path):
     try:
         os.makedirs(path)
@@ -454,7 +460,8 @@ def gatherTimesAtf():
     addHeader = "sed -i 1i\""+ atfCsvHeader + "\" " + epochTimeCsv
     os.system(addHeader)
     os.chdir(explorationDir)
-    
+
+#TODO check if we still need this
 def atfHarness():
     #check if environment config exists #TODO Why should we check this here?
     runDir = args.atfHarnessDir
@@ -477,7 +484,7 @@ def atfHarness():
         clearDir(runDir)  
 
 
-#TODO We don't need this anymore
+#TODO check if we still need this
 def lowLevelAtf():
     printBlue("\n[INFO] Tuning low level expressions with atf -- " )
     executedKernels =1         
@@ -524,7 +531,7 @@ def lowLevelAtf():
                         else:
                             print("Path was not a file: \""+lowLevelPath+"\"\n")
             """
-
+#TODO check if we still need this
 def makeAtfScripts(lowLevelExpressionPath, lowLevelHash):
     printBlue("\n[INFO] Generating compile.sh and run.sh for low level expression "+lowLevelHash+" -- " )
     if(not os.path.isdir(lowLevelTuner) or not os.path.isfile(lowLevelTuner+'/lowLevelLift')):
@@ -552,6 +559,7 @@ def makeAtfScripts(lowLevelExpressionPath, lowLevelHash):
     runScript.close()
     make_executable(explorationDir+'/atfCcfg/runScript.sh')
 
+#TODO move to explore util module
 def make_executable(path):
     mode = os.stat(path).st_mode
     mode |= (mode & 0o444) >> 2    # copy R bits to X

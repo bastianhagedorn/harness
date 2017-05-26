@@ -5,6 +5,7 @@ import errno
 import shutil
 import time
 import calendar
+import csv
 import json
 #lowLevelTuning is an execution module so we can use it as any other execution module using the executionModule api
 
@@ -73,14 +74,36 @@ def init(envConf, explorationConf):
 #cleans the files created by the last execution    
 def clean():
     _checkState()
-    sys.exit('not yet implemented')
+    #clean atfCcfg dir
+    atfCcfg = _explorationDir+'/atfCcfg'
+    if(os.path.isdir(atfCcfg)):
+        clearDir(atfCcfg)
+    
+    #remove *_parameter.json files
+    for fileName in os.listdir(_explorationDir+'/'+_expressionLower):
+        if os.path.isdir(_explorationDir+'/'+_expressionLower+'/'+fileName):
+            #this file contains paths of LowLevel expressions relative to the exploration dir
+            indexFile = open(_explorationDir+"/"+_expressionLower+"/"+fileName+"/index","r")
+            for llrelPath in indexFile:
+                llrelPath=llrelPath.strip('\n') #remove the newline
+                silentRemove(_explorationDir+'/'+llrelPath+'_parameter.json')
+            
 
 #runs the exectution
 def run():
     _checkState()
     printBlue("\n[INFO] Tuning low level expressions with atf -- " )
     
-    silentMkdir(_explorationDir+'/atfCcfg')
+    #create atfCcfg dir
+    atfCcfgDir = _explorationDir+'/atfCcfg'
+    silentMkdir(atfCcfgDir)
+    
+    tmpCsvFile = open(atfCcfgDir+'/tmp.csv','w')
+    #TODO Why does atf output time+6 values when we just tuned 3 values?
+    #TODO We need to merge csvs with different headers
+    tmpCsvWriter = csv.writer(tmpCsvFile)
+    tmpCsvWriter.writerow(['time,glsize0,glsize1,glsize2,lsize0,lsize1,lsize2,llExpression'])
+    
     
     for fileName in os.listdir(_explorationDir+'/'+_expressionLower):
         if os.path.isdir(_explorationDir+'/'+_expressionLower+'/'+fileName):
@@ -92,17 +115,28 @@ def run():
                 if(os.path.isfile(lowLevelPath)):
                     printBlue('[INFO] Creating Tunner of '+llrelPath)
                     _prepareTuner(lowLevelPath)
-                    p = subprocess.Popen(['./lowLevelLift'], cwd=_explorationDir+'/atfCcfg')
+                    p = subprocess.Popen(['./lowLevelLift'], cwd=atfCcfgDir)
                     p.wait()
+                    
+                    #addLExpression to the csv
+                    resultCsvFile = open(atfCcfgDir+'/result.csv','r')
+                    resultCsvReader = csv.reader(resultCsvFile)
+                                        
+                    next(resultCsvReader) # skip header
+                    for line in resultCsvReader:
+                        tmpCsvWriter.writerow(line.append(llrelPath))
+                    resultCsvFile.close()
                     
                 else:
                     warn('Not a file: "' + lowLevelPath+'"')
+    tmpCsvFile.close()
 
 #cleans the execution directories and runs the execution afterwards
 #Note: I'm not quite sure if we need a rerun function or if we should just always prepare 
 def rerun():
     _checkState()
-    sys.exit('not yet implemented')
+    clean()
+    run()
 
 #collects the times of the last execution
 def gatherTimes():
@@ -179,7 +213,15 @@ def _prepareTuner(lowLevelExpressionPath):
     #move it over
     shutil.copy2(_tuner+'/lowLevelLift', _explorationDir+'/atfCcfg')
     makeExecutable(tunerDir+'/lowLevelLift')
-    makeExecutable(tunerDir+'/runScript.py')   
+    makeExecutable(tunerDir+'/runScript.py')
+    
+    #init the results.csv
+    resultCsvFile = open(atfCcfgDir+'/result.csv','w') #using w wil override the existing file if there was an existing file. That's exactly what we want.
+    #TODO Why does atf output time+6 values when we just tuned 3 values?
+    #TODO header should depend on the values used for tuning.
+    resultCsvFile.write('time,glsize0,glsize1,glsize2,lsize0,lsize1,lsize2')
+    resultCsvFile.close()
+    
     
 def _getTuningParameter(lowLevelExpressionPath):
     #TODO call Analyzer if parameter.json does not exist
@@ -199,6 +241,9 @@ def _getTuningParameter(lowLevelExpressionPath):
 def _checkState():
     if(not _ready):error('lowLevelTuning module was not initialised. Call init before using this module')
     elif(not os.path.isdir(_explorationDir+'/'+_expressionLower)):error('The directory '+_explorationDir+'/'+_expressionLower+' does not exist. Please run the HighLevel and MemoryMapping Rewrites before executing')
+    
+
+
 
 
 
@@ -239,7 +284,7 @@ class bcolors:
 #use camelCase or under_score or alllower function names but dontMix_them.
 def clearDir(dirname):
     for f in os.listdir(dirname):
-        silentremove(f)
+        silentRemove(f)
 
 def silentRemove(filename):
     try:
