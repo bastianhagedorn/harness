@@ -216,7 +216,7 @@ def _prepareTuner(lowLevelExpressionPath):
     makeExecutable(tunerDir+'/runScript.py')
     
     #init the results.csv
-    resultCsvFile = open(atfCcfgDir+'/result.csv','w') #using w wil override the existing file if there was an existing file. That's exactly what we want.
+    resultCsvFile = open(tunerDir+'/result.csv','w') #using w wil override the existing file if there was an existing file. That's exactly what we want.
     #TODO Why does atf output time+6 values when we just tuned 3 values?
     #TODO header should depend on the values used for tuning.
     resultCsvFile.write('time,glsize0,glsize1,glsize2,lsize0,lsize1,lsize2')
