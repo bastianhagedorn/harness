@@ -13,7 +13,7 @@ import json
 
 #Which module to require depends on the used flag (--atf, --llatf, --harness)
 import lowLevelTuning as executionModule
-#import kernelTuning as executionModule
+import kernelTuning as executionModule
 #import harnessTuning as executionModule
 
 
@@ -259,6 +259,14 @@ def silent_mkdir(path):
             pass
         else:
             raise
+
+#returns all files with filenames == name starting from path.
+def findAll(name, path):
+    result = []
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            result.append(os.path.join(root, name))
+    return result
 
 # SCRIPT FUNCTIONS #################################################
 def clean():
