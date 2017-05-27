@@ -14,6 +14,10 @@ import json
 #Note: Inside functions We can read these without any problems but if we want to assign them, we need to explicitly tell the function scope that this variable is not local.
 #Also note: these can be accessed from the outside of the module but one should not do this.
 _ready=False
+
+_envConfPath=None
+_confPath=None
+
 #environment
  #Paths
 _lift=None
@@ -44,10 +48,10 @@ _liftScripts=None
 #void requiredRewrites()
 
 #Initializes the module
-def init(envConf, explorationConf):
+def init(envConf, explorationConf, envConfPath, explorationConfPath):
     global _lift, _atf, _tuner, _clPlattform, _clDevice
     global _expression, _name, _inputSize, _cwd, _explorationDir, _expressionLower, _liftScripts
-    global _ready
+    global _ready, _envConfPath, _confPath
     if(_ready): return
     #read the environment values required for this module to work
     _lift = os.path.normpath(envConf['Path']['Lift'])
@@ -66,6 +70,9 @@ def init(envConf, explorationConf):
     _explorationDir = _cwd + "/" + _name
     _expressionLower = _expression + "Lower"
     _liftScripts = _lift + "/scripts/compiled_scripts"
+    
+    _envConfPath = envConfPath
+    _confPath = explorationConfPath
     
     #module is ready to use now
     _ready=True
@@ -192,6 +199,7 @@ def _prepareTuner(lowLevelExpressionPath):
         mainCpp.write(');\n')
     
     runScript.write('p = subprocess.Popen(["'+_liftScripts+'/KernelGenerator", ')
+    runScript.write(' "--env", "'+_envConfPath
     runScript.write(  '"--gs", "'+','.join(['<$TP:'+v+'>' for v in gsvars])+'", ')
     runScript.write(  '"--ls", "'+','.join(['<$TP:'+v+'>' for v in lsvars])+'", ')
     runScript.write('"--vars", "1024,'+','.join(['<$TP:'+v+'>' for v in tpvars])+'", ')
@@ -200,7 +208,7 @@ def _prepareTuner(lowLevelExpressionPath):
     mainCpp.write('auto cf = atf::cf::ccfg("./runScript.py", "./runScript.py", true, "./costfile.txt");\n')
     gsvars.extend(lsvars)
     gsvars.extend(tpvars)
-    mainCpp.write('auto best_config = atf::annealing(atf::cond::duration<std::chrono::seconds>(60))('+', '.join(gsvars)+')(cf);\n')
+    mainCpp.write('auto best_config = atf::open_tuner(atf::cond::duration<std::chrono::seconds>(60))('+', '.join(gsvars)+')(cf);\n')
     mainCpp.write('}\n')
     
     mainCpp.close()
