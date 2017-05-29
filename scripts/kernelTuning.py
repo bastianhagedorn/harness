@@ -315,7 +315,9 @@ def getVariable(filePath,variableName):
  
 def countGeneratedKernels():
     kernelNumber =0
-    os.chdir(explorationDir +"/"+ expressionCl)
+    explorationDir = _explorationDir
+    expressionCl = _expressionCl
+    os.chdir(_explorationDir +"/"+ expressionCl)
     ##count the number of generated kernels
     for fileName in os.listdir(explorationDir+"/"+expressionCl):
         os.chdir(explorationDir+"/"+expressionCl)
@@ -325,3 +327,4 @@ def countGeneratedKernels():
                 if fn.endswith(".cl"):
                     kernelNumber +=1
     return kernelNumber
+

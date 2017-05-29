@@ -10,9 +10,10 @@ import configparser
 import calendar
 import csv
 import json
+import importlib
 
 #Which module to require depends on the used flag (--atf, --llatf, --harness)
-import lowLevelTuning as executionModule
+#import lowLevelTuning as executionModule
 #import kernelTuning as executionModule
 #import harnessTuning as executionModule
 
@@ -69,6 +70,14 @@ parser.add_argument('--silentExecution', dest='silentExecution', action='store_t
 parser.add_argument('config', action='store', default='config',
         help='config file')
 
+parser.add_argument('--atf', dest='atf', action='store_true',
+        help='run the execution atf kernelTuning')
+parser.add_argument('--llAtf', dest='llAtf', action='store_true',
+        help='run the execution atf low level tuning')
+parser.add_argument('--harness', dest='harness', action='store_true',
+        help='run the execution harness')
+        
+
 #TODO flag naming
 parser.add_argument('--makeTuner', dest='makeTuner', action='store_true',help='just don\'t use this flag!')
     
@@ -109,6 +118,11 @@ if not os.path.exists(configPath): sys.exit("[ERROR] config file not found!")
 #open Json config
 json_file = open(absoluteConfigPath)
 json_config = json.load(json_file)
+
+
+
+### MODULES
+executionModule = None
 
 
 
@@ -798,10 +812,17 @@ def setupExploration():
     silent_mkdir(name)
     shutil.copy2(args.config, name)
     os.chdir(name)
+    #init module
+    executionModule(json_envConfig,json_config)
 
 # START OF SCRIPT ##################################################
+if(args.harness): executionModule = importlib.import_module("harnessTuning", package=None)
+if(args.llAtf): executionModule = importlib.import_module("harnessTuning", package=None) 
+if(args.atf): executionModule = importlib.import_module("lowLevelTuning", package=None)
+
 if(args.clean): clean()
 else:
+
     setupExploration()
     if(args.highLevelRewrite): highLevelRewrite()
     if(args.memoryMappingRewrite): memoryMappingRewrite()
@@ -823,10 +844,8 @@ else:
     
     os.chdir(currentDir)
     if(args.makeTuner):
-        executionModule.init(json_envConfig, json_config)
         executionModule.run()
     
-#    if(args.atfHarness): atfHarness() 
-#    if(args.lowLevelAtf): lowLevelAtf()
+
 
 os.chdir(currentDir)

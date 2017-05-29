@@ -154,11 +154,11 @@ def gatherTimes():
     _checkState()
     printBlue("\n[INFO] Gather time -- " + _epochTimeCsv)
 
-    timeCsvFilePaths = findAll(timeCsv, _explorationDir + "/"+_expressionCl)
+    timeCsvFilePaths = findAll(timeCsv, _explorationDir + "/" + _expressionCl)
     #open the gatheredTimeFile in append mode.
     with open(_explorationDir + "/" + _expressionCl + "/" + _epochTimeCsv, "a") as gatheredTimeFile:
-	#write header first
-	gatheredTimeFile.write(_atfCsvHeader)
+        #write header first
+        gatheredTimeFile.write(_atfCsvHeader) 
 	for csvfile in timeCsvFilePaths:
             #now write all times from the found timecsv files to the gatheredTimeFile
             with open(csvfile, "r") as currentCsvFile:
@@ -318,6 +318,8 @@ def getVariable(filePath, variableName):
     return rest[:search_enter]
  
 def countGeneratedKernels():
+    explorationDir = _explorationDir
+    expressionCl = _expressionCl
     kernelNumber = 0
     os.chdir(explorationDir + "/" + expressionCl)
     ##count the number of generated kernels
