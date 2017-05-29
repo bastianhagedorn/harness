@@ -7,7 +7,7 @@ import time
 import calendar
 import csv
 import json
-#lowLevelTuning is an execution module so we can use it as any other execution module using the executionModule api
+#kernletuning is an execution module so we can use it as any other execution module using the executionModule api
 
 
 ### Module attributes ###
@@ -75,6 +75,8 @@ def init(envConf, explorationConf):
 
     _atfCsvHeader = explorationConf['Atf']['Header']
     
+    
+    
     #module is ready to use now
     _ready=True
 
@@ -90,52 +92,52 @@ def clean():
             		#remove tuner from the folder
 			silentremove(explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName)
            		#remove results.csv
-			silentremove(explorationDir+"/"+expressionCl+"/"+fileName+"/results.csv"
+			silentremove(explorationDir+"/"+expressionCl+"/"+fileName+"/results.csv")
 
             
 
 #runs the exectution
 def run():
-	print("Warning! Exectution is not tested yet!")
-	_checkState()
-	printBlue("\n[INFO] Tuning OpenCL kernels with atf -- " )
-	silent = bool(False)
-    	if(args.silentExecution): 
+    print("Warning! Exectution is not tested yet!")
+    _checkState()
+    printBlue("\n[INFO] Tuning OpenCL kernels with atf -- " )
+    silent = bool(False)
+    if(args.silentExecution): 
         silent = bool(True)
         printBlue("[INFO] Running in silent mode\n")
     
-    	#redirecting stdout of subprocesses to fnull
-    	FNULL = open(os.devnull, 'w')
-    	pathToTuner = tuner + "/" + tunerName
-    	os.chdir(explorationDir +"/"+ expressionCl)
+    #redirecting stdout of subprocesses to fnull
+    FNULL = open(os.devnull, 'w')
+    pathToTuner = tuner + "/" + tunerName
+    os.chdir(explorationDir +"/"+ expressionCl)
     
-   	 kernelNumber = countGeneratedKernels()         
-   	 executedKernels =1         
-   	#search kernel folders
-    	for fileName in os.listdir(explorationDir+"/"+expressionCl):
-        	os.chdir(explorationDir+"/"+expressionCl)
-        	if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
-            	os.chdir(fileName)
-            	#copy tuner to the folder
-           	shutil.copy2(pathToTuner, explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName)
-            	#run atf with every kernel in the folder
-            	currentKernelNumber=1;
-            	for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
-               		if fn.endswith(".cl"):
-                    		if(silent):
-                        	sys.stdout.write("Progress: {}/{}   \r".format(executedKernels,kernelNumber) )
-                        	sys.stdout.flush()
-                        	atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
-                        	p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg],stdout=FNULL, stderr=subprocess.STDOUT)
+    kernelNumber = countGeneratedKernels()         
+    executedKernels =1         
+    #search kernel folders
+    for fileName in os.listdir(explorationDir+"/"+expressionCl):
+            os.chdir(explorationDir+"/"+expressionCl)
+            if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
+                os.chdir(fileName)
+                #copy tuner to the folder
+                shutil.copy2(pathToTuner, explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName)
+                #run atf with every kernel in the folder
+                currentKernelNumber=1;
+                for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
+                        if fn.endswith(".cl"):
+                                if(silent):
+                                sys.stdout.write("Progress: {}/{}   \r".format(executedKernels,kernelNumber) )
+                                sys.stdout.flush()
+                                atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
+                                p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg],stdout=FNULL, stderr=subprocess.STDOUT)
 
-                    	else:
-                        	atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
-                        	p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg])
-                    	p.wait()
-                    	addKernelNameToRow = "sed -i \""+str(currentKernelNumber)+"s/$/"+str(fn.partition(".")[0])+"/\" results.csv"
-                    	os.system(addKernelNameToRow)
-                    	currentKernelNumber+=1
-                    	executedKernels+=1
+                        else:
+                                atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
+                                p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg])
+                        p.wait()
+                        addKernelNameToRow = "sed -i \""+str(currentKernelNumber)+"s/$/"+str(fn.partition(".")[0])+"/\" results.csv"
+                        os.system(addKernelNameToRow)
+                        currentKernelNumber+=1
+                        executedKernels+=1
 
 #cleans the execution directories and runs the execution afterwards
 #Note: I'm not quite sure if we need a rerun function or if we should just always prepare 
@@ -153,7 +155,7 @@ def gatherTimes():
 
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
 
-    timeCsvFilePaths = findAll(timeCsv, _explorationDir+"/"_expressionCl)
+    timeCsvFilePaths = findAll("results.csv", _explorationDir+"/"_expressionCl)
     #open the gatheredTimeFile in append mode.
     with open(_explorationDir+"/"+_expressionCl+"/"+epochTimeCsv, "a") as gatheredTimeFile:
 	#write header first

@@ -13,7 +13,7 @@ import json
 
 #Which module to require depends on the used flag (--atf, --llatf, --harness)
 import lowLevelTuning as executionModule
-import kernelTuning as executionModule
+#import kernelTuning as executionModule
 #import harnessTuning as executionModule
 
 
