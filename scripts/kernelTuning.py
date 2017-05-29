@@ -1,40 +1,40 @@
-import subprocess
-import os
-import sys
-import errno
-import shutil
-import time
 import calendar
 import csv
+import errno
 import json
+import os
+import shutil
+import subprocess
+import sys
+import time
 #kernletuning is an execution module so we can use it as any other execution module using the executionModule api
 
 
 ### Module attributes ###
 #Note: Inside functions We can read these without any problems but if we want to assign them, we need to explicitly tell the function scope that this variable is not local.
 #Also note: these can be accessed from the outside of the module but one should not do this.
-_ready=False
+_ready = False
 #environment
- #Paths
-_lift=None
-_atf=None
-_tuner=None
- #openCL
-_clPlattform=None
-_clDevice=None
+    #Paths
+_lift = None
+_atf = None
+_tuner = None
+    #openCL
+_clPlattform = None
+_clDevice = None
 
 #general
-_expression=None
-_name=None
+_expression = None
+_name = None
 _inputSize = None
-_cwd=None
-_explorationDir=None
-_expressionLower=None
-_liftScripts=None
-_expressionCl=None
+_cwd = None
+_explorationDir = None
+_expressionLower = None
+_liftScripts = None
+_expressionCl = None
 
 #atf
-_atfCsvHeader=None
+_atfCsvHeader = None
 
 
 
@@ -50,7 +50,7 @@ _atfCsvHeader=None
 #Initializes the module
 def init(envConf, explorationConf):
     global _lift, _atf, _tuner, _clPlattform, _clDevice
-    global _expression, _name, _inputSize, _cwd, _explorationDir,_expressionLower ,_expressionCl, _liftScripts
+    global _expression, _name, _inputSize, _cwd, _explorationDir, _expressionLower, _expressionCl, _liftScripts
     global _atfCsvHeader
     global _ready
     if(_ready): return
@@ -58,8 +58,8 @@ def init(envConf, explorationConf):
     _lift = os.path.normpath(envConf['Path']['Lift'])
     _atf = os.path.normpath(envConf['Path']['Atf'])
     _tuner = os.path.normpath(envConf['Path']['LowLevelTuner'])
-    _clPlattform=envConf['OpenCL']['Platform']
-    _clDevice=envConf['OpenCL']['Device']
+    _clPlattform = envConf['OpenCL']['Platform']
+    _clDevice = envConf['OpenCL']['Device']
     
     #read the explore values required for this module to work
     _expression = explorationConf['General']['Expression']
@@ -73,26 +73,26 @@ def init(envConf, explorationConf):
     _expressionCl = _expression + "Cl"
     _liftScripts = _lift + "/scripts/compiled_scripts"
 
-    _atfCsvHeader = explorationConf['Atf']['Header']
+    _atfCsvHeader = explorationConf['ATF']['Header']
     
     
     
     #module is ready to use now
-    _ready=True
+    _ready = True
 
 #cleans the files created by the last execution    
 def clean():
-	print("Warning! Cleaning not tested yet!")
-	#search kernel folders
-    	for fileName in os.listdir(explorationDir+"/"+expressionCl):
-		if filenName.endswith(".csv"):
-			#clean gathered times csv
-			silentremove(explorationDir+"/"+expressionCl+"/"+fileName)
-        	if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
-            		#remove tuner from the folder
-			silentremove(explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName)
-           		#remove results.csv
-			silentremove(explorationDir+"/"+expressionCl+"/"+fileName+"/results.csv")
+    print("Warning! Cleaning not tested yet!")
+    #search kernel folders
+    for fileName in os.listdir(explorationDir + "/" + expressionCl):
+        if filenName.endswith(".csv"):
+            #clean gathered times csv
+            silentremove(explorationDir + "/" + expressionCl + "/" + fileName)
+        if os.path.isdir(explorationDir + "/" + expressionCl + "/" + fileName):
+            #remove tuner from the folder
+            silentremove(explorationDir + "/" + expressionCl + "/" + fileName + "/" + tunerName)
+            #remove results.csv
+            silentremove(explorationDir + "/" + expressionCl + "/" + fileName + "/results.csv")
 
             
 
@@ -100,7 +100,7 @@ def clean():
 def run():
     print("Warning! Exectution is not tested yet!")
     _checkState()
-    printBlue("\n[INFO] Tuning OpenCL kernels with atf -- " )
+    printBlue("\n[INFO] Tuning OpenCL kernels with atf -- ")
     silent = bool(False)
     if(args.silentExecution): 
         silent = bool(True)
@@ -109,35 +109,31 @@ def run():
     #redirecting stdout of subprocesses to fnull
     FNULL = open(os.devnull, 'w')
     pathToTuner = tuner + "/" + tunerName
-    os.chdir(explorationDir +"/"+ expressionCl)
     
     kernelNumber = countGeneratedKernels()         
-    executedKernels =1         
+    executedKernels = 1         
     #search kernel folders
-    for fileName in os.listdir(explorationDir+"/"+expressionCl):
-            os.chdir(explorationDir+"/"+expressionCl)
-            if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
-                os.chdir(fileName)
-                #copy tuner to the folder
-                shutil.copy2(pathToTuner, explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName)
-                #run atf with every kernel in the folder
-                currentKernelNumber=1;
-                for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
-                        if fn.endswith(".cl"):
-                                if(silent):
-                                sys.stdout.write("Progress: {}/{}   \r".format(executedKernels,kernelNumber) )
-                                sys.stdout.flush()
-                                atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
-                                p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg],stdout=FNULL, stderr=subprocess.STDOUT)
-
-                        else:
-                                atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
-                                p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg])
-                        p.wait()
-                        addKernelNameToRow = "sed -i \""+str(currentKernelNumber)+"s/$/"+str(fn.partition(".")[0])+"/\" results.csv"
-                        os.system(addKernelNameToRow)
-                        currentKernelNumber+=1
-                        executedKernels+=1
+    for fileName in os.listdir(explorationDir + "/" + expressionCl):
+        if os.path.isdir(explorationDir + "/" + expressionCl + "/" + fileName):
+            #copy tuner to the folder
+            shutil.copy2(pathToTuner, explorationDir + "/" + expressionCl + "/" + fileName + "/" + tunerName)
+            #run atf with every kernel in the folder
+            currentKernelNumber = 1;
+            for fn in os.listdir(explorationDir + "/" + expressionCl + "/" + fileName):
+                if fn.endswith(".cl"):
+                    if(silent):
+                        sys.stdout.write("Progress: {}/{}   \r".format(executedKernels, kernelNumber))
+                        sys.stdout.flush()
+                        atfArg = explorationDir + "/" + expressionCl + "/" + fileName + "/" + fn
+                        p = subprocess.Popen([explorationDir + "/" + expressionCl + "/" + fileName + "/" + tunerName, atfArg], stdout=FNULL, stderr=subprocess.STDOUT)
+                    else:
+                        atfArg = explorationDir + "/" + expressionCl + "/" + fileName + "/" + fn
+                        p = subprocess.Popen([explorationDir + "/" + expressionCl + "/" + fileName + "/" + tunerName, atfArg])
+                p.wait()
+                addKernelNameToRow = "sed -i \"" + str(currentKernelNumber) + "s/$/" + str(fn.partition(".")[0]) + "/\" results.csv"
+                os.system(addKernelNameToRow)
+                currentKernelNumber += 1
+                executedKernels += 1
 
 #cleans the execution directories and runs the execution afterwards
 #Note: I'm not quite sure if we need a rerun function or if we should just always prepare 
@@ -150,125 +146,124 @@ def rerun():
 def gatherTimes():
     print("Warning! gatherTimes is not tested yet!")
     _checkState()
-    epochTimeCsv = "time_" + str(_inputSize) +  "_" + _name + ".csv"
+    epochTimeCsv = "time_" + str(_inputSize) + "_" + _name + ".csv"
     timeCsv = "time_" + str(_inputSize) + ".csv"
 
     printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
 
-    timeCsvFilePaths = findAll("results.csv", _explorationDir+"/"_expressionCl)
+    timeCsvFilePaths = findAll("results.csv", _explorationDir + "/"+_expressionCl)
     #open the gatheredTimeFile in append mode.
-    with open(_explorationDir+"/"+_expressionCl+"/"+epochTimeCsv, "a") as gatheredTimeFile:
-	#write header first
-	gatheredTimeFile.write(_atfCsvHeader)
-	for csvfile in timeCsvFilePaths:
-		#now write all times from the found timecsv files to the gatheredTimeFile
-		with open(csvfile, "r") as currentCsvFile:
-			gatheredTimeFile.write(currentCsvFile.read())
-			
+    with open(_explorationDir + "/" + _expressionCl + "/" + epochTimeCsv, "a") as gatheredTimeFile:
+       #write header first
+       gatheredTimeFile.write(_atfCsvHeader)
+       for csvfile in timeCsvFilePaths:
+            #now write all times from the found timecsv files to the gatheredTimeFile
+            with open(csvfile, "r") as currentCsvFile:
+                gatheredTimeFile.write(currentCsvFile.read())
+       		
 #exports the kernels and the tuned parameters of the best and worst kernels
 def findKernels():
     print("Warning! findKernels is not tested yet!")
     _checkState()
-    printBlue("\n[INFO] Searching best and worst kernel -- " )
-    csvFile= open(explorationDir+"/"+expressionCl+"/"+epochTimeCsv,"r")
+    printBlue("\n[INFO] Searching best and worst kernel -- ")
+    csvFile = open(explorationDir + "/" + expressionCl + "/" + epochTimeCsv, "r")
     #lists for the csv values
-    rows=[]
+    rows = []
     times = []
     kernels = []
-    header=0
+    header = 0
     #parsing the csv values
-    reader=csv.reader(csvFile)
-    rownum=0
+    reader = csv.reader(csvFile)
+    rownum = 0
     for row in reader:
-        if rownum ==0: header=row
+        if rownum == 0: header = row
         else:
             colnum = 0
             for col in row:
-                if header[colnum]=="time": times.append(col)
-                if header[colnum]=="kernel": kernels.append(col)
+                if header[colnum] == "time": times.append(col)
+                if header[colnum] == "kernel": kernels.append(col)
                 
-                colnum+=1
+                colnum += 1
             rows.append(row) 
         rownum += 1
             
     csvFile.close()
     #find the best and worst kernel
-    index=0
-    bestTime=99999999
-    bestKernel="null"
-    bestKernelIndex=0
-    worstKernelIndex=0
-    worstTime=0;
-    worstKernel="null"
+    index = 0
+    bestTime = 99999999
+    bestKernel = "null"
+    bestKernelIndex = 0
+    worstKernelIndex = 0
+    worstTime = 0;
+    worstKernel = "null"
 
     for time in times:
         if(isfloat(time)):
             if bestTime > float(time):
-                bestKernel=kernels[index]
-                bestTime=float(time)
-                bestKernelIndex=index
+                bestKernel = kernels[index]
+                bestTime = float(time)
+                bestKernelIndex = index
             if worstTime < float(time):
-                worstTime=float(time)
-                worstKernel=kernels[index]
-                worstKernelIndex=index
-            index+=1;
+                worstTime = float(time)
+                worstKernel = kernels[index]
+                worstKernelIndex = index
+            index += 1;
         else:
             if bestTime > int(time):
-                bestKernel=kernels[index]
-                bestTime=int(time)
-                bestKernelIndex=index
+                bestKernel = kernels[index]
+                bestTime = int(time)
+                bestKernelIndex = index
             if worstTime < int(time):
-                worstTime=int(time)
-                worstKernel=kernels[index]
-                worstKernelIndex=index
-            index+=1;   
+                worstTime = int(time)
+                worstKernel = kernels[index]
+                worstKernelIndex = index
+            index += 1;   
         
 
     #save best kernel
-    silent_mkdir(_explorationDir+"/bestkernel")
-    with open(_explorationDir+"/bestkernel/kernelinfo.csv", "a") as kernelinfo:
-	kernelinfo.write(str(header))
-	kernelinfo.write(str(rows[bestKernelIndex]))
+    silent_mkdir(_explorationDir + "/bestkernel")
+    with open(_explorationDir + "/bestkernel/kernelinfo.csv", "a") as kernelinfo:
+       kernelinfo.write(str(header))
+       kernelinfo.write(str(rows[bestKernelIndex]))
     #save kernel.cl
-    bestKernelFilePath = find(bestKernel+".cl",_explorationDir+"/"+expressionCl )
-    shutil.copy2(bestKernelFilePath, _explorationDir+"/bestkernel/kernel.cl")
+    bestKernelFilePath = find(bestKernel + ".cl", _explorationDir + "/" + expressionCl)
+    shutil.copy2(bestKernelFilePath, _explorationDir + "/bestkernel/kernel.cl")
     #save expression.low
-    bestKernelLowLevelHash = getVariable(explorationDir+"/bestkernel/kernel.cl","Low-level hash:")
-    bestKernelLowLevelExpressionPath = find(bestKernelLowLevelHash ,_explorationDir+"/"+_expressionLower )
-    shutil.copy2(bestKernelLowLevelExpressionPath, _explorationDir+"/bestkernel/expression.low")
+    bestKernelLowLevelHash = getVariable(explorationDir + "/bestkernel/kernel.cl", "Low-level hash:")
+    bestKernelLowLevelExpressionPath = find(bestKernelLowLevelHash, _explorationDir + "/" + _expressionLower)
+    shutil.copy2(bestKernelLowLevelExpressionPath, _explorationDir + "/bestkernel/expression.low")
     #save expression.high
-    bestKernelHighLevelHash = getVariable(explorationDir+"/bestkernel/kernel.cl","High-level hash:")
-    bestKernelHighLevelExpressionPath = find(bestKernelHighLevelHash ,_explorationDir+"/"+_expressionLower )
-    shutil.copy2(bestKernelHighLevelExpressionPath, _explorationDir+"/bestkernel/expression.high")
+    bestKernelHighLevelHash = getVariable(explorationDir + "/bestkernel/kernel.cl", "High-level hash:")
+    bestKernelHighLevelExpressionPath = find(bestKernelHighLevelHash, _explorationDir + "/" + _expressionLower)
+    shutil.copy2(bestKernelHighLevelExpressionPath, _explorationDir + "/bestkernel/expression.high")
 
     
     #save worst kernel
-    silent_mkdir(_explorationDir+"/worstkernel")
-    with open(_explorationDir+"/worstkernel/kernelinfo.csv", "a") as kernelinfo:
-	kernelinfo.write(str(header))
-	kernelinfo.write(str(rows[worstKernelIndex]))
+    silent_mkdir(_explorationDir + "/worstkernel")
+    with open(_explorationDir + "/worstkernel/kernelinfo.csv", "a") as kernelinfo:
+       kernelinfo.write(str(header))
+       kernelinfo.write(str(rows[worstKernelIndex]))
     #save kernel.cl
-    worstKernelFilePath = find(worstKernel+".cl",_explorationDir+"/"+expressionCl )
-    shutil.copy2(worstKernelFilePath, _explorationDir+"/worstkernel/kernel.cl")
+    worstKernelFilePath = find(worstKernel + ".cl", _explorationDir + "/" + expressionCl)
+    shutil.copy2(worstKernelFilePath, _explorationDir + "/worstkernel/kernel.cl")
     #save expression.low
-    worstKernelLowLevelHash = getVariable(explorationDir+"/worstkernel/kernel.cl","Low-level hash:")
-    worstKernelLowLevelExpressionPath = find(worstKernelLowLevelHash ,_explorationDir+"/"+_expressionLower )
-    shutil.copy2(worstKernelLowLevelExpressionPath, _explorationDir+"/worstkernel/expression.low")
+    worstKernelLowLevelHash = getVariable(explorationDir + "/worstkernel/kernel.cl", "Low-level hash:")
+    worstKernelLowLevelExpressionPath = find(worstKernelLowLevelHash, _explorationDir + "/" + _expressionLower)
+    shutil.copy2(worstKernelLowLevelExpressionPath, _explorationDir + "/worstkernel/expression.low")
     #save expression.high
-    worstKernelHighLevelHash = getVariable(explorationDir+"/worstkernel/kernel.cl","High-level hash:")
-    worstKernelHighLevelExpressionPath = find(worstKernelHighLevelHash ,_explorationDir+"/"+_expressionLower )
-    shutil.copy2(worstKernelHighLevelExpressionPath, _explorationDir+"/worstkernel/expression.high")
+    worstKernelHighLevelHash = getVariable(explorationDir + "/worstkernel/kernel.cl", "High-level hash:")
+    worstKernelHighLevelExpressionPath = find(worstKernelHighLevelHash, _explorationDir + "/" + _expressionLower)
+    shutil.copy2(worstKernelHighLevelExpressionPath, _explorationDir + "/worstkernel/expression.high")
 
 
 #tells which rewrites are required to run before the execution module can start its work
 def requiredRewrites():
-    _checkState()
-    return ("highLevel","memoryMapping", "parameterRewrite")
+    return ("highLevel", "memoryMapping", "parameter")
 
 
 def _checkState():
     if(not _ready):error('kernelTuning module was not initialised. Call init before using this module')
-    elif(not os.path.isdir(_explorationDir+'/'+_expressionCl)):error('The directory '+_explorationDir+'/'+_expressionCl+' does not exist. Please run the HighLevel, MemoryMapping and Parameter Rewrites before executing')
+    elif(not os.path.isdir(_explorationDir + '/' + _expressionCl)):error('The directory ' + _explorationDir + '/' + _expressionCl + ' does not exist. Please run the HighLevel, MemoryMapping and Parameter Rewrites before executing')
 
 ########### utility functions ###########
 
@@ -304,27 +299,45 @@ def find(name, path):
         if name in files:
             return os.path.join(root, name)
 
+### More helper that should be located in some explorationUtil module
+class bcolors:
+    BLUE= '\033[95m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+def printBlue( string ):
+    print(bcolors.BLUE + string + bcolors.ENDC)
+    return
+    
+def info(string):
+    print('[INFO] ' + string )
+
+def warn(string):
+    print(bcolors.FAIL+'[WARN] ' + bcolors.ENDC + string )
+
+def error(string):
+    sys.exit(bcolors.FAIL+'[ERROR] ' + bcolors.ENDC + string)
+
 ########### private helper functions ###########
    
-def getVariable(filePath,variableName):
-    ffile=open(filePath,'r').read()
-    ini=ffile.find(variableName)+(len(variableName)+1)
-    rest=ffile[ini:]
-    search_enter=rest.find('\n')
+def getVariable(filePath, variableName):
+    ffile = open(filePath, 'r').read()
+    ini = ffile.find(variableName) + (len(variableName) + 1)
+    rest = ffile[ini:]
+    search_enter = rest.find('\n')
     return rest[:search_enter]
  
 def countGeneratedKernels():
-    kernelNumber =0
+    kernelNumber = 0
     explorationDir = _explorationDir
     expressionCl = _expressionCl
-    os.chdir(_explorationDir +"/"+ expressionCl)
     ##count the number of generated kernels
-    for fileName in os.listdir(explorationDir+"/"+expressionCl):
-        os.chdir(explorationDir+"/"+expressionCl)
-        if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
-            os.chdir(fileName)
-            for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
+    for fileName in os.listdir(explorationDir + "/" + expressionCl):
+        if os.path.isdir(explorationDir + "/" + expressionCl + "/" + fileName):
+            for fn in os.listdir(explorationDir + "/" + expressionCl + "/" + fileName):
                 if fn.endswith(".cl"):
-                    kernelNumber +=1
+                    kernelNumber += 1
     return kernelNumber
 

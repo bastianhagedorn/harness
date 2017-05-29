@@ -159,12 +159,12 @@ def gatherTimes():
     with open(_explorationDir + "/" + _expressionCl + "/" + _epochTimeCsv, "a") as gatheredTimeFile:
         #write header first
         gatheredTimeFile.write(_atfCsvHeader) 
-	for csvfile in timeCsvFilePaths:
+       for csvfile in timeCsvFilePaths:
             #now write all times from the found timecsv files to the gatheredTimeFile
             with open(csvfile, "r") as currentCsvFile:
                 gatheredTimeFile.write(currentCsvFile.read())
     
-			
+       		
 #exports the kernels and the tuned parameters of the best and worst kernels
 def findKernels():
     _checkState()
@@ -230,8 +230,8 @@ def findKernels():
     #save best kernel
     silent_mkdir(_explorationDir + "/bestkernel")
     with open(_explorationDir + "/bestkernel/kernelinfo.csv", "a") as kernelinfo:
-	kernelinfo.write(str(header))
-	kernelinfo.write(str(rows[bestKernelIndex]))
+       kernelinfo.write(str(header))
+       kernelinfo.write(str(rows[bestKernelIndex]))
     #save kernel.cl
     bestKernelFilePath = find(bestKernel + ".cl", _explorationDir + "/" + expressionCl)
     shutil.copy2(bestKernelFilePath, _explorationDir + "/bestkernel/kernel.cl")
@@ -248,8 +248,8 @@ def findKernels():
     #save worst kernel
     silent_mkdir(_explorationDir + "/worstkernel")
     with open(_explorationDir + "/worstkernel/kernelinfo.csv", "a") as kernelinfo:
-	kernelinfo.write(str(header))
-	kernelinfo.write(str(rows[worstKernelIndex]))
+       kernelinfo.write(str(header))
+       kernelinfo.write(str(rows[worstKernelIndex]))
     #save kernel.cl
     worstKernelFilePath = find(worstKernel + ".cl", _explorationDir + "/" + expressionCl)
     shutil.copy2(worstKernelFilePath, _explorationDir + "/worstkernel/kernel.cl")
@@ -266,8 +266,7 @@ def findKernels():
 
 #tells which rewrites are required to run before the execution module can start its work
 def requiredRewrites():
-    _checkState()
-    return ("highLevel", "memoryMapping", "parameterRewrite")
+    return ("highLevel", "memoryMapping", "parameter")
 
 
 def _checkState():
@@ -307,6 +306,27 @@ def find(name, path):
     for root, dirs, files in os.walk(path):
         if name in files:
             return os.path.join(root, name)
+
+### More helper that should be located in some explorationUtil module
+class bcolors:
+    BLUE= '\033[95m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+def printBlue( string ):
+    print(bcolors.BLUE + string + bcolors.ENDC)
+    return
+    
+def info(string):
+    print('[INFO] ' + string )
+
+def warn(string):
+    print(bcolors.FAIL+'[WARN] ' + bcolors.ENDC + string )
+
+def error(string):
+    sys.exit(bcolors.FAIL+'[ERROR] ' + bcolors.ENDC + string)
 
 ########### private helper functions ###########
    

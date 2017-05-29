@@ -72,7 +72,7 @@ parser.add_argument('config', action='store', default='config',
 
 parser.add_argument('--atf', dest='atf', action='store_true',
         help='run the execution atf kernelTuning')
-parser.add_argument('--llAtf', dest='llAtf', action='store_true',
+parser.add_argument('--llatf', dest='llatf', action='store_true',
         help='run the execution atf low level tuning')
 parser.add_argument('--harness', dest='harness', action='store_true',
         help='run the execution harness')
@@ -310,40 +310,6 @@ def parameterRewrite():
     args = parameterRewriteArgs + " " + expression
     callExplorationStage("ParameterRewrite", args)
 
-def runHarness():
-    printBlue("\n[INFO] Running Harness recursively")
-    
-    silent = bool(False)
-    if(args.silentExecution): 
-        silent = bool(True)
-        printBlue("[INFO] Running in silent mode\n")
-    
-    pathToHarness = executor + "/build/" + harness
-    #redirecting stdout of subprocesses to fnull
-    FNULL = open(os.devnull, 'w')
-    os.chdir(explorationDir +"/"+ expressionCl)
-    
-    kernelNumber = countGeneratedKernels()        
-    executedKernels =1 
-    # recursively access every subdirectory and execute harness with harnessArgs
-    for fileName in os.listdir(explorationDir+"/"+expressionCl):
-        os.chdir(explorationDir+"/"+expressionCl)
-        if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
-            os.chdir(fileName)
-            #copy tuner to the folder
-            shutil.copy2(pathToHarness, explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness)
-            #run harness with every kernel in the folder
-            for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
-                if fn.endswith(".cl"):
-                    if silent:
-                        sys.stdout.write("Progress: {}/{}   \r".format(executedKernels,kernelNumber) )
-                        sys.stdout.flush()
-                        p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness+" "+harnessArgs], shell=True,stdout=FNULL, stderr=subprocess.STDOUT)
-                    else:
-                        p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+harness+" "+harnessArgs], shell=True)
-                   
-                    p.wait()
-                    executedKernels+=1
 
 def runHarnessInDir(pathOfDirectory):
     printBlue("\n[INFO] Running Harness with every Kenrel in "+pathOfDirectory)
@@ -407,81 +373,7 @@ def generateCostFile(pathOfDirectory):
     costfile.write(str(int(bestTime*10000)))
     costfile.close()
 
-    
-
-def runAtf():
-    printBlue("\n[INFO] Tuning Kernels with Atf recursively")
-    silent = bool(False)
-    if(args.silentExecution): 
-        silent = bool(True)
-        printBlue("[INFO] Running in silent mode\n")
-    
-    #redirecting stdout of subprocesses to fnull
-    FNULL = open(os.devnull, 'w')
-    pathToTuner = tuner + "/" + tunerName
-    os.chdir(explorationDir +"/"+ expressionCl)
-    
-    kernelNumber = countGeneratedKernels()         
-    executedKernels =1         
-    #search kernel folders
-    for fileName in os.listdir(explorationDir+"/"+expressionCl):
-        os.chdir(explorationDir+"/"+expressionCl)
-        if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
-            os.chdir(fileName)
-            #copy tuner to the folder
-            shutil.copy2(pathToTuner, explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName)
-            #run atf with every kernel in the folder
-            currentKernelNumber=1;
-            for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
-                if fn.endswith(".cl"):
-                    if(silent):
-                        sys.stdout.write("Progress: {}/{}   \r".format(executedKernels,kernelNumber) )
-                        sys.stdout.flush()
-                        atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
-                        p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg],stdout=FNULL, stderr=subprocess.STDOUT)
-
-                    else:
-                        atfArg=explorationDir+"/"+expressionCl+"/"+fileName+"/"+fn
-                        p= subprocess.Popen([explorationDir+"/"+expressionCl+"/"+fileName+"/"+tunerName, atfArg])
-                    p.wait()
-                    addKernelNameToRow = "sed -i \""+str(currentKernelNumber)+"s/$/"+str(fn.partition(".")[0])+"/\" results.csv"
-                    os.system(addKernelNameToRow)
-                    currentKernelNumber+=1
-                    executedKernels+=1
    
-
-def countGeneratedKernels():
-    kernelNumber =0
-    os.chdir(explorationDir +"/"+ expressionCl)
-    ##count the number of generated kernels
-    for fileName in os.listdir(explorationDir+"/"+expressionCl):
-        os.chdir(explorationDir+"/"+expressionCl)
-        if os.path.isdir(explorationDir+"/"+expressionCl+"/"+fileName) :
-            os.chdir(fileName)
-            for fn in os.listdir(explorationDir+"/"+expressionCl+"/"+fileName):
-                if fn.endswith(".cl"):
-                    kernelNumber +=1
-    return kernelNumber
-
-def gatherTimes():
-    printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
-    os.chdir(explorationDir+"/"+expressionCl)
-    command = "find . -name \"" + timeCsv + "\" | xargs cat >> " + epochTimeCsv
-    os.system(command)
-    # add header
-    addHeader = "sed -i 1i\""+ csvHeader + "\" " + epochTimeCsv
-    os.system(addHeader)
-    os.chdir(explorationDir)
-
-def gatherTimesAtf():
-    printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
-    os.chdir(explorationDir+"/"+expressionCl)
-    command = "find . -name \""  +"results.csv"+ "\" | xargs cat >> " + epochTimeCsv
-    os.system(command)
-    # add header
-    addHeader = "sed -i 1i\""+ atfCsvHeader + "\" " + epochTimeCsv
-    os.system(addHeader)
-    os.chdir(explorationDir)
 
 #TODO check if we still need this
 def atfHarness():
@@ -587,89 +479,6 @@ def make_executable(path):
     mode |= (mode & 0o444) >> 2    # copy R bits to X
     os.chmod(path, mode)
     
-
-def findBestAndWorst():
-    printBlue("\n[INFO] Searching best and worst kernel -- " )
-    os.chdir(explorationDir+"/"+expressionCl)
-    csvFile= open(epochTimeCsv,"r")
-    #lists for the csv values
-    rows=[]
-    times = []
-    kernels = []
-    header=0
-    #parsing the csv values
-    reader=csv.reader(csvFile)
-    rownum=0
-    for row in reader:
-        if rownum ==0: header=row
-        else:
-            colnum = 0
-            for col in row:
-                if header[colnum]=="time": times.append(col)
-                if header[colnum]=="kernel": kernels.append(col)
-                
-                colnum+=1
-            rows.append(row) 
-        rownum += 1
-            
-    csvFile.close()
-    #find the best and worst kernel
-    index=0
-    bestTime=99999999
-    bestKernel="null"
-    bestKernelIndex=0
-    worstKernelIndex=0
-    worstTime=0;
-    worstKernel="null"
-
-    for time in times:
-        if(isfloat(time)):
-            if bestTime > float(time):
-                bestKernel=kernels[index]
-                bestTime=float(time)
-                bestKernelIndex=index
-            if worstTime < float(time):
-                worstTime=float(time)
-                worstKernel=kernels[index]
-                worstKernelIndex=index
-            index+=1;
-        else:
-            if bestTime > int(time):
-                bestKernel=kernels[index]
-                bestTime=int(time)
-                bestKernelIndex=index
-            if worstTime < int(time):
-                worstTime=int(time)
-                worstKernel=kernels[index]
-                worstKernelIndex=index
-            index+=1;   
-        
-
-    os.chdir(explorationDir)
-        #save best kernel
-    command = "mkdir bestkernel; cd bestkernel ;echo \""+str(header)+"\n"+str(rows[bestKernelIndex])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel+"*.cl' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
-    os.system(command)
-        #save lowelevel expression
-    os.chdir(explorationDir+"/bestkernel")
-    command = "find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/expression.low \\;" 
-    os.system(command)
-        #save highlevel expression
-    os.chdir(explorationDir+"/bestkernel")
-    command = "find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/expression.high \\;" 
-    os.system(command)
-    os.chdir(explorationDir)
-        #save worst kernel
-    command = "mkdir worstkernel; cd worstkernel; echo \""+str(header)+"\n"+str(rows[worstKernelIndex])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+worstKernel+".cl' -exec cp '{}' "+explorationDir+"/worstkernel/kernel.cl \\;" 
-    os.system(command)  
-        #save lowelevel expression
-    os.chdir(explorationDir+"/worstkernel")
-    command = "find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/worstkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/worstkernel/expression.low \\;" 
-    os.system(command)
-            #save highlevel expression
-    os.chdir(explorationDir+"/worstkernel")
-    command = "find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/worstkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/worstkernel/expression.high \\;" 
-    os.system(command)
-    saveExplorationMetaInformation()
     
 def getVariable(filePath,variableName):
     ffile=open(filePath,'r').read()
@@ -699,21 +508,19 @@ def plot():
 
 def rewrite():
     printBlue("[INFO] Start rewriting process")
-    highLevelRewrite()
-    memoryMappingRewrite()
-    parameterRewrite()
+    neededRewrites = executionModule.requiredRewrites()
+    if "highLevel" in neededRewrites :highLevelRewrite()
+    if "memoryMapping" in neededRewrites :memoryMappingRewrite()
+    if "parameter" in neededRewrites :parameterRewrite()
+    
+
 
 def execute():
     printBlue("[INFO] Execute generated kernels")
-    runHarness()
-    gatherTimes()
+    executionModule.run()
+    executionModule.gatherTimes()
     plot()
 
-def executeAtf():
-    printBlue("[INFO] Execute generated kernels")
-    runAtf()
-    gatherTimesAtf()
-    plot()
 
 def rerun():
     printBlue("[INFO] Rerunning:")
@@ -724,18 +531,6 @@ def rerun():
 #global exploration length in mins
 explorationLength = 0
 
-def exploreAtf():
-    printBlue("[INFO] Starting exploration -- " + expression)
-    start = time.time()
-    rewrite()
-    executeAtf()
-    end = time.time()
-    elapsed = (end-start)/60
-    global explorationLength
-    explorationLength = elapsed
-    printBlue("[INFO] Finished exploration! Took " + str(elapsed) + " minutes to execute")
-    printSummary()
-    findBestAndWorst()
 
 def explore():
     printBlue("[INFO] Starting exploration -- " + expression)
@@ -748,7 +543,8 @@ def explore():
     explorationLength = elapsed
     printBlue("[INFO] Finished exploration! Took " + str(elapsed) + " minutes to execute")
     printSummary()
-    findBestAndWorst()
+    saveExplorationMetaInformation()
+    executionModule.findKernels()
 
 def printOccurences(name):
     print(bcolors.BLUE + "[INFO] " + name + ": " + bcolors.ENDC, end='', flush=True)
@@ -813,12 +609,18 @@ def setupExploration():
     shutil.copy2(args.config, name)
     os.chdir(name)
     #init module
-    executionModule(json_envConfig,json_config)
+    executionModule.init(json_envConfig,json_config)
 
 # START OF SCRIPT ##################################################
-if(args.harness): executionModule = importlib.import_module("harnessTuning", package=None)
-if(args.llAtf): executionModule = importlib.import_module("harnessTuning", package=None) 
-if(args.atf): executionModule = importlib.import_module("lowLevelTuning", package=None)
+if(args.harness): 
+    executionModule = importlib.import_module("harnessTuning", package=None)
+    print("Loaded harness module\n")
+if(args.llatf): 
+    executionModule = importlib.import_module("lowLevelTuning", package=None)
+    print("Loaded llatf module\n")
+if(args.atf): 
+    executionModule = importlib.import_module("kernelTuning", package=None)
+    print("Loaded atf module\n")
 
 if(args.clean): clean()
 else:
