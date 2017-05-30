@@ -199,7 +199,7 @@ def _prepareTuner(lowLevelExpressionPath):
         mainCpp.write(');\n')
     
     runScript.write('p = subprocess.Popen(["'+_liftScripts+'/KernelGenerator", ')
-    runScript.write(' "--env", "'+_envConfPath
+    runScript.write(' "--env", "'+_envConfPath)
     runScript.write(  '"--gs", "'+','.join(['<$TP:'+v+'>' for v in gsvars])+'", ')
     runScript.write(  '"--ls", "'+','.join(['<$TP:'+v+'>' for v in lsvars])+'", ')
     runScript.write('"--vars", "1024,'+','.join(['<$TP:'+v+'>' for v in tpvars])+'", ')
