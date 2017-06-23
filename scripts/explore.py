@@ -612,6 +612,7 @@ def findBestAndWorst():
                 worstKernelIndex=index
             index+=1;
         else:
+            print(time)
             if bestTime > int(time):
                 bestKernel=kernels[index]
                 bestTime=int(time)
@@ -815,7 +816,7 @@ else:
     
     os.chdir(currentDir)
     if(args.makeTuner):
-        executionModule.init(json_envConfig, json_config)
+        executionModule.init(json_envConfig, json_config, envConf, configPath)
         executionModule.run()
     
 #    if(args.atfHarness): atfHarness() 

@@ -2,10 +2,6 @@
     {"_COMMENT_":
         "Note: this file is an example file. Files like this are expected to reside next to a low level expression as <lowLevelHash>_parameter.json. This comment is not part of the expected structure.",
      "name": "gs0", "interval":{"type":"int", "from":"1", "to":"1024"}},
-    {"name": "gs1", "interval":{"type":"int", "from":"1", "to":"1024"}},
-    {"name": "gs2", "interval":{"type":"int", "from":"1", "to":"1024"}},
     {"name": "ls0", "interval":{"type":"int", "from":"1", "to":"1024"}, "divides": "gs0"},
-    {"name": "ls1", "interval":{"type":"int", "from":"1", "to":"1024"}, "divides": "gs1"},
-    {"name": "ls2", "interval":{"type":"int", "from":"1", "to":"1024"}, "divides": "gs2"},
     {"name":"v__1", "interval":{"type":"int", "from":"1", "to":"1024"}, "divides": "gs0"}
 ]
