@@ -35,6 +35,7 @@ _expressionCl = None
 
 #atf
 _atfCsvHeader = None
+_tunerName = "genericLiftKernel"
 
 
 
@@ -49,6 +50,7 @@ _atfCsvHeader = None
 
 #Initializes the module
 def init(envConf, explorationConf):
+    print("Modul wird initiatlisiert")
     global _lift, _atf, _tuner, _clPlattform, _clDevice
     global _expression, _name, _inputSize, _cwd, _explorationDir, _expressionLower, _expressionCl, _liftScripts
     global _atfCsvHeader
@@ -57,7 +59,7 @@ def init(envConf, explorationConf):
     #read the environment values required for this module to work
     _lift = os.path.normpath(envConf['Path']['Lift'])
     _atf = os.path.normpath(envConf['Path']['Atf'])
-    _tuner = os.path.normpath(envConf['Path']['LowLevelTuner'])
+    _tuner = os.path.normpath(envConf['Path']['Tuner'])
     _clPlattform = envConf['OpenCL']['Platform']
     _clDevice = envConf['OpenCL']['Device']
     
@@ -102,34 +104,39 @@ def run():
     _checkState()
     printBlue("\n[INFO] Tuning OpenCL kernels with atf -- ")
     silent = bool(False)
-    if(args.silentExecution): 
-        silent = bool(True)
-        printBlue("[INFO] Running in silent mode\n")
+    #args in some case not initialized
+    #if(args.silentExecution): 
+    #    silent = bool(True)
+    #    printBlue("[INFO] Running in silent mode\n")
     
     #redirecting stdout of subprocesses to fnull
     FNULL = open(os.devnull, 'w')
-    pathToTuner = tuner + "/" + tunerName
+    printBlue("_tuner ")
+    print(_tuner + "/" + _tunerName)
+    pathToTuner = _tuner + "/" + _tunerName
     
     kernelNumber = countGeneratedKernels()         
     executedKernels = 1         
     #search kernel folders
-    for fileName in os.listdir(explorationDir + "/" + expressionCl):
-        if os.path.isdir(explorationDir + "/" + expressionCl + "/" + fileName):
+    for fileName in os.listdir(_explorationDir + "/" + _expressionCl):
+        if os.path.isdir(_explorationDir + "/" + _expressionCl + "/" + fileName):
             #copy tuner to the folder
-            shutil.copy2(pathToTuner, explorationDir + "/" + expressionCl + "/" + fileName + "/" + tunerName)
+            shutil.copy2(pathToTuner, _explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _tunerName)
             #run atf with every kernel in the folder
             currentKernelNumber = 1;
-            for fn in os.listdir(explorationDir + "/" + expressionCl + "/" + fileName):
+            for fn in os.listdir(_explorationDir + "/" + _expressionCl + "/" + fileName):
                 if fn.endswith(".cl"):
                     if(silent):
                         sys.stdout.write("Progress: {}/{}   \r".format(executedKernels, kernelNumber))
                         sys.stdout.flush()
-                        atfArg = explorationDir + "/" + expressionCl + "/" + fileName + "/" + fn
-                        p = subprocess.Popen([explorationDir + "/" + expressionCl + "/" + fileName + "/" + tunerName, atfArg], stdout=FNULL, stderr=subprocess.STDOUT)
+                        atfArg = _explorationDir + "/" + _expressionCl + "/" + fileName + "/" + fn
+                        p = subprocess.Popen([_explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _tunerName + " " + atfArg], stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
+                        #eventuell einen fehler hier
                     else:
-                        atfArg = explorationDir + "/" + expressionCl + "/" + fileName + "/" + fn
-                        p = subprocess.Popen([explorationDir + "/" + expressionCl + "/" + fileName + "/" + tunerName, atfArg])
+                        atfArg = _explorationDir + "/" + _expressionCl + "/" + fileName + "/" + fn
+                        p = subprocess.Popen([_explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _tunerName + " " +  atfArg], shell=True)
                 p.wait()
+                #schreib mal das ergebnis zurueck. GGfs hier anpassen
                 addKernelNameToRow = "sed -i \"" + str(currentKernelNumber) + "s/$/" + str(fn.partition(".")[0]) + "/\" results.csv"
                 os.system(addKernelNameToRow)
                 currentKernelNumber += 1

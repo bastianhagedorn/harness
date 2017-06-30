@@ -607,9 +607,12 @@ def removeBlacklist():
 def setupExploration():
     silent_mkdir(name)
     shutil.copy2(args.config, name)
-    os.chdir(name)
+    #os.chdir(name)
     #init module
     executionModule.init(json_envConfig,json_config)
+    os.chdir(name)
+    #path json env config
+    #path json exploration conf
 
 # START OF SCRIPT ##################################################
 if(args.harness): 

@@ -19,6 +19,7 @@ _ready = False
 _lift = None
 _atf = None
 _tuner = None
+_executor = None
     #openCL
 _clPlattform = None
 _clDevice = None
@@ -36,6 +37,9 @@ _expressionCl = None
 #atf
 _atfCsvHeader = None
 
+#harness
+_harness = None
+_harnessArgs = None
 
 
 ### public API ###
@@ -49,7 +53,8 @@ _atfCsvHeader = None
 
 #Initializes the module
 def init(envConf, explorationConf):
-    global _lift, _atf, _tuner, _clPlattform, _clDevice
+    print("Modul Harness wird initialisiert")
+    global _lift, _atf, _tuner, _executor, _harness, _harnessArgs,  _clPlattform, _clDevice
     global _expression, _name, _inputSize, _cwd, _explorationDir, _expressionLower, _expressionCl, _liftScripts
     global _timeCsv, _epochTimeCsv
     global _atfCsvHeader
@@ -106,37 +111,35 @@ def run():
     _checkState()
     printBlue("\n[INFO] Running Harness recursively")
     
-    expressionCl = _expressionCl
-    explorationDir = _explorationDir
     
     silent = bool(False)
-    if(args.silentExecution): 
-        silent = bool(True)
-        printBlue("[INFO] Running in silent mode\n")
-    
+    #args in some case not initialized
+    # if(args.silentExecution): 
+    #    silent = bool(True)
+    #    printBlue("[INFO] Running in silent mode\n") 
     pathToHarness = _executor + "/build/" + _harness
     #redirecting stdout of subprocesses to fnull
     FNULL = open(os.devnull, 'w')
-    os.chdir(explorationDir + "/" + expressionCl)
+    os.chdir(_explorationDir + "/" + _expressionCl)
     
     kernelNumber = countGeneratedKernels()        
     executedKernels = 1 
     # recursively access every subdirectory and execute harness with harnessArgs
-    for fileName in os.listdir(explorationDir + "/" + expressionCl):
-        os.chdir(explorationDir + "/" + expressionCl)
-        if os.path.isdir(explorationDir + "/" + expressionCl + "/" + fileName):
+    for fileName in os.listdir(_explorationDir + "/" + _expressionCl):
+        os.chdir(_explorationDir + "/" + _expressionCl)
+        if os.path.isdir(_explorationDir + "/" + _expressionCl + "/" + fileName):
             os.chdir(fileName)
             #copy tuner to the folder
-            shutil.copy2(pathToHarness, explorationDir + "/" + expressionCl + "/" + fileName + "/" + harness)
+            shutil.copy2(pathToHarness, _explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _harness)
             #run harness with every kernel in the folder
-            for fn in os.listdir(explorationDir + "/" + expressionCl + "/" + fileName):
+            for fn in os.listdir(_explorationDir + "/" + _expressionCl + "/" + fileName):
                 if fn.endswith(".cl"):
                     if silent:
                         sys.stdout.write("Progress: {}/{}   \r".format(executedKernels, kernelNumber))
                         sys.stdout.flush()
-                        p = subprocess.Popen([explorationDir + "/" + expressionCl + "/" + fileName + "/" + _harness + " " + _harnessArgs], shell=True, stdout=FNULL, stderr=subprocess.STDOUT)
+                        p = subprocess.Popen([_explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _harness + " " + _harnessArgs], shell=True, stdout=FNULL, stderr=subprocess.STDOUT)
                     else:
-                        p = subprocess.Popen([explorationDir + "/" + expressionCl + "/" + fileName + "/" + _harness + " " + _harnessArgs], shell=True)
+                        p = subprocess.Popen([_explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _harness + " " + _harnessArgs], shell=True)
                    
                     p.wait()
                     executedKernels += 1
@@ -159,7 +162,7 @@ def gatherTimes():
     with open(_explorationDir + "/" + _expressionCl + "/" + _epochTimeCsv, "a") as gatheredTimeFile:
         #write header first
         gatheredTimeFile.write(_atfCsvHeader) 
-       for csvfile in timeCsvFilePaths:
+        for csvfile in timeCsvFilePaths:
             #now write all times from the found timecsv files to the gatheredTimeFile
             with open(csvfile, "r") as currentCsvFile:
                 gatheredTimeFile.write(currentCsvFile.read())
