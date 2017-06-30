@@ -157,7 +157,6 @@ def findKernels():
 
 #tells which rewrites are required to run before the execution module can start its work
 def requiredRewrites():
-    _checkState()
     return ("highLevel","memoryMapping")
 
 
