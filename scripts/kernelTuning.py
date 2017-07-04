@@ -137,11 +137,11 @@ def run():
                         atfArg = _explorationDir + "/" + _expressionCl + "/" + fileName + "/" + fn
                         p = subprocess.Popen([_explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _tunerName + " " +  atfArg], shell=True)
                     p.wait()
-                #schreib mal das ergebnis zurueck. GGfs hier anpassen
-                addKernelNameToRow = "sed -i \"" + str(currentKernelNumber) + "s/$/" + str(fn.partition(".")[0]) + "/\" results.csv"
-                os.system(addKernelNameToRow)
-                currentKernelNumber += 1
-                executedKernels += 1
+                    #schreib mal das ergebnis zurueck. GGfs hier anpassen
+                    addKernelNameToRow = "sed -i \"" + str(currentKernelNumber) + "s/$/" + str(fn.partition(".")[0]) + "/\" results.csv"
+                    os.system(addKernelNameToRow)
+                    currentKernelNumber += 1
+                    executedKernels += 1
 
 #cleans the execution directories and runs the execution afterwards
 #Note: I'm not quite sure if we need a rerun function or if we should just always prepare 
