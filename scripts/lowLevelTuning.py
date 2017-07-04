@@ -14,6 +14,10 @@ import json
 #Note: Inside functions We can read these without any problems but if we want to assign them, we need to explicitly tell the function scope that this variable is not local.
 #Also note: these can be accessed from the outside of the module but one should not do this.
 _ready=False
+
+_envConfPath=None
+_confPath=None
+
 #environment
  #Paths
 _lift=None
@@ -44,10 +48,10 @@ _liftScripts=None
 #void requiredRewrites()
 
 #Initializes the module
-def init(envConf, explorationConf):
+def init(envConf, explorationConf, envConfPath, explorationConfPath):
     global _lift, _atf, _tuner, _clPlattform, _clDevice
     global _expression, _name, _inputSize, _cwd, _explorationDir, _expressionLower, _liftScripts
-    global _ready
+    global _ready, _envConfPath, _confPath
     if(_ready): return
     #read the environment values required for this module to work
     _lift = os.path.normpath(envConf['Path']['Lift'])
@@ -66,6 +70,9 @@ def init(envConf, explorationConf):
     _explorationDir = _cwd + "/" + _name
     _expressionLower = _expression + "Lower"
     _liftScripts = _lift + "/scripts/compiled_scripts"
+    
+    _envConfPath = envConfPath
+    _confPath = explorationConfPath
     
     #module is ready to use now
     _ready=True
@@ -86,7 +93,7 @@ def clean():
             indexFile = open(_explorationDir+"/"+_expressionLower+"/"+fileName+"/index","r")
             for llrelPath in indexFile:
                 llrelPath=llrelPath.strip('\n') #remove the newline
-                silentRemove(_explorationDir+'/'+llrelPath+'_parameter.json')
+                silentRemove(_explorationDir+'/'+llrelPath+'.json')
             
 
 #runs the exectution
@@ -100,9 +107,9 @@ def run():
     
     tmpCsvFile = open(atfCcfgDir+'/tmp.csv','w')
     #TODO Why does atf output time+6 values when we just tuned 3 values?
-    #TODO We need to merge csvs with different headers
     tmpCsvWriter = csv.writer(tmpCsvFile)
-    tmpCsvWriter.writerow(['time,glsize0,glsize1,glsize2,lsize0,lsize1,lsize2,llExpression'])
+    #TODO This header doesn't always match the contents...
+    tmpCsvWriter.writerow(['time','glsize0','glsize1','glsize2','lsize0','lsize1','lsize2','N','v1','llExpression'])
     
     
     for fileName in os.listdir(_explorationDir+'/'+_expressionLower):
@@ -118,18 +125,23 @@ def run():
                     p = subprocess.Popen(['./lowLevelLift'], cwd=atfCcfgDir)
                     p.wait()
                     
-                    #addLExpression to the csv
-                    resultCsvFile = open(atfCcfgDir+'/result.csv','r')
-                    resultCsvReader = csv.reader(resultCsvFile)
+                    
+                    #addLExpression to the csv and move the contents over to the tmpCsv
+                    #TODO we can't simply append the contents. We need to take care of differences in the header.
+                    timesCsvFile = open(atfCcfgDir+'/times.csv','r')
+                    timesCsvReader = csv.reader(timesCsvFile)
                                         
-                    next(resultCsvReader) # skip header
-                    for line in resultCsvReader:
-                        tmpCsvWriter.writerow(line.append(llrelPath))
-                    resultCsvFile.close()
+                    next(timesCsvReader) # skip header
+                    for line in timesCsvReader:
+                      line.append(llrelPath)
+                      tmpCsvWriter.writerow(line)
+                    timesCsvFile.close()
                     
                 else:
                     warn('Not a file: "' + lowLevelPath+'"')
     tmpCsvFile.close()
+    shutil.move(atfCcfgDir+'/tmp.csv',atfCcfgDir+'/times.csv')
+    
 
 #cleans the execution directories and runs the execution afterwards
 #Note: I'm not quite sure if we need a rerun function or if we should just always prepare 
@@ -150,7 +162,6 @@ def findKernels():
 
 #tells which rewrites are required to run before the execution module can start its work
 def requiredRewrites():
-    _checkState()
     return ("highLevel","memoryMapping")
 
 
@@ -184,7 +195,7 @@ def _prepareTuner(lowLevelExpressionPath):
         mainCpp.write('auto '+name+' = atf::tp( "'+name+'"')
         if('interval' in param):
             interval=param['interval']
-            mainCpp.write(', atf::interval<'+interval['type']+'>('+interval['from']+','+interval['to']+')')
+            mainCpp.write(', atf::interval<'+interval['type']+'>('+str(interval['from'])+','+str(interval['to'])+')')
         
         if('divides' in param):
             mainCpp.write(', atf::divides('+param['divides']+')')
@@ -192,6 +203,7 @@ def _prepareTuner(lowLevelExpressionPath):
         mainCpp.write(');\n')
     
     runScript.write('p = subprocess.Popen(["'+_liftScripts+'/KernelGenerator", ')
+    runScript.write(' "--env", "'+_envConfPath+'", ')
     runScript.write(  '"--gs", "'+','.join(['<$TP:'+v+'>' for v in gsvars])+'", ')
     runScript.write(  '"--ls", "'+','.join(['<$TP:'+v+'>' for v in lsvars])+'", ')
     runScript.write('"--vars", "1024,'+','.join(['<$TP:'+v+'>' for v in tpvars])+'", ')
@@ -200,7 +212,7 @@ def _prepareTuner(lowLevelExpressionPath):
     mainCpp.write('auto cf = atf::cf::ccfg("./runScript.py", "./runScript.py", true, "./costfile.txt");\n')
     gsvars.extend(lsvars)
     gsvars.extend(tpvars)
-    mainCpp.write('auto best_config = atf::annealing(atf::cond::duration<std::chrono::seconds>(60))('+', '.join(gsvars)+')(cf);\n')
+    mainCpp.write('auto best_config = atf::open_tuner(atf::cond::duration<std::chrono::seconds>(60))('+', '.join(gsvars)+')(cf);\n')
     mainCpp.write('}\n')
     
     mainCpp.close()
@@ -216,24 +228,27 @@ def _prepareTuner(lowLevelExpressionPath):
     makeExecutable(tunerDir+'/runScript.py')
     
     #init the results.csv
-    resultCsvFile = open(tunerDir+'/result.csv','w') #using w wil override the existing file if there was an existing file. That's exactly what we want.
+    timesCsvFile = open(tunerDir+'/times.csv','w') #using w wil override the existing file if there was an existing file. That's exactly what we want.
     #TODO Why does atf output time+6 values when we just tuned 3 values?
     #TODO header should depend on the values used for tuning.
-    resultCsvFile.write('time,glsize0,glsize1,glsize2,lsize0,lsize1,lsize2')
-    resultCsvFile.close()
+    timesCsvFile.write('time,glsize0,glsize1,glsize2,lsize0,lsize1,lsize2')
+    timesCsvFile.close()
     
     
 def _getTuningParameter(lowLevelExpressionPath):
-    #TODO call Analyzer if parameter.json does not exist
-    
-    #copy dummy file for testing without the Analyzer
-    if(not os.path.isfile(lowLevelExpressionPath+'_parameter.json')):
-        scriptsDir = os.path.dirname(os.path.realpath(__file__))
-        shutil.copy2(scriptsDir+'/template.json',lowLevelExpressionPath+'_parameter.json')
+    #call Analyzer if *parameter.json does not exist
+    if(not os.path.isfile(lowLevelExpressionPath+'.json')):
+        p = subprocess.Popen([_liftScripts+'/LambdaAnalyser',lowLevelExpressionPath])
+        p.wait()
+ 
+#   #copy dummy file for testing without the Analyzer
+#   if(not os.path.isfile(lowLevelExpressionPath+'_parameter.json')):
+#       scriptsDir = os.path.dirname(os.path.realpath(__file__))
+#       shutil.copy2(scriptsDir+'/template.json',lowLevelExpressionPath+'_parameter.json')
     
     
     #read the json
-    jsonFile = open(lowLevelExpressionPath+'_parameter.json')
+    jsonFile = open(lowLevelExpressionPath+'.json')
     params = json.load(jsonFile)
     jsonFile.close()
     return params

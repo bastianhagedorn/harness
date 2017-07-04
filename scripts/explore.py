@@ -548,7 +548,7 @@ def explore():
 
 def printOccurences(name):
     print(bcolors.BLUE + "[INFO] " + name + ": " + bcolors.ENDC, end='', flush=True)
-    find = "find . -name \"" + name + "_" + inputSize + ".csv\" | xargs cat | wc -l"
+    find = "find . -name \"" + name + "_" + str(inputSize) + ".csv\" | xargs cat | wc -l"
     os.system(find)
     
 def saveExplorationMetaInformation():
@@ -556,7 +556,7 @@ def saveExplorationMetaInformation():
     os.chdir(explorationDir+"/bestkernel")
     kernelNumber = "cd "+explorationDir+"/"+expressionCl+";  ls */*.cl | wc -l"
     validExecutions = "find "+explorationDir+"/"+expressionCl+" -name \"" + timeCsv + "\" | xargs cat | wc -l"
-    allExecutions = "find "+explorationDir+"/"+expressionCl+" -name \"exec_" + inputSize + ".csv\" | xargs cat | wc -l"
+    allExecutions = "find "+explorationDir+"/"+expressionCl+" -name \"exec_" + str(inputSize) + ".csv\" | xargs cat | wc -l"
     liftBranch = "cd "+lift+" ; git branch | grep -e \"^*\" | cut -d' ' -f 2-"
     liftCommit = "cd "+lift+" ; git rev-parse HEAD"
     arithExpBranch = "cd "+lift+"/lib/ArithExpr ;  git branch | grep -e \"^*\" | cut -d' ' -f 2-"
@@ -574,7 +574,7 @@ def printSummary():
     #print how many executed runs there are
     os.chdir(expressionCl)
     validExecutions = "find . -name \"" + timeCsv + "\" | xargs cat | wc -l"
-    allExecutions = "find . -name \"exec_" + inputSize + ".csv\" | xargs cat | wc -l"
+    allExecutions = "find . -name \"exec_" + str(inputSize) + ".csv\" | xargs cat | wc -l"
     print(bcolors.BLUE + "[INFO] Executed runs: " + bcolors.ENDC, end='', flush=True)
     command = " echo -n $("+validExecutions+") && echo -n '/' && " + allExecutions
     os.system(command)
@@ -588,7 +588,7 @@ def printSummary():
 def removeCsv(name):
     #filename = name + "_" + inputSize + ".csv"
     #printBlue("[INFO] Removing " + filename)
-    command = "find . -name \"" + name + "_" + inputSize + ".csv\" | xargs rm"
+    command = "find . -name \"" + name + "_" + str(inputSize) + ".csv\" | xargs rm"
     os.system(command)
 
 def removeBlacklist():
@@ -647,10 +647,3 @@ else:
     if(args.findKernels): findBestAndWorst()
     if(args.gatherTimesAtf): gatherTimesAtf()
     
-    os.chdir(currentDir)
-    if(args.makeTuner):
-        executionModule.run()
-    
-
-
-os.chdir(currentDir)
