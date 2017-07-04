@@ -43,7 +43,7 @@ _harnessArgs = None
 
 
 ### public API ###
-#void init(ConfigParser envConf, ConfigParser explorationConf)
+#void init(ConfigParser envConf, ConfigParser explorationConf, String envConfPath, String explorationConfPath)
 #void clean()
 #void run()
 #void rerun()
@@ -52,7 +52,7 @@ _harnessArgs = None
 #void requiredRewrites()
 
 #Initializes the module
-def init(envConf, explorationConf):
+def init(envConf, explorationConf, envConfPath, explorationConfPath):
     print("Modul Harness wird initialisiert")
     global _lift, _atf, _tuner, _executor, _harness, _harnessArgs,  _clPlattform, _clDevice
     global _expression, _name, _inputSize, _cwd, _explorationDir, _expressionLower, _expressionCl, _liftScripts

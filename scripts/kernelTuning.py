@@ -40,7 +40,7 @@ _tunerName = "genericLiftKernel"
 
 
 ### public API ###
-#void init(ConfigParser envConf, ConfigParser explorationConf)
+#void init(ConfigParser envConf, ConfigParser explorationConf, String envConfPath, String explorationConfPath)
 #void clean()
 #void run()
 #void rerun()
@@ -49,7 +49,7 @@ _tunerName = "genericLiftKernel"
 #void requiredRewrites()
 
 #Initializes the module
-def init(envConf, explorationConf):
+def init(envConf, explorationConf, envConfPath, explorationConfPath):
     print("Modul wird initiatlisiert")
     global _lift, _atf, _tuner, _clPlattform, _clDevice
     global _expression, _name, _inputSize, _cwd, _explorationDir, _expressionLower, _expressionCl, _liftScripts

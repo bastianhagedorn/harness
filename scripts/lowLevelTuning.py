@@ -39,7 +39,7 @@ _liftScripts=None
 
 
 ### public API ###
-#void init(ConfigParser envConf, ConfigParser explorationConf)
+#void init(ConfigParser envConf, ConfigParser explorationConf, String envConfPath, String explorationConfPath)
 #void clean()
 #void run()
 #void rerun()
