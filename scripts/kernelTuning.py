@@ -111,6 +111,7 @@ def run():
     
     #redirecting stdout of subprocesses to fnull
     FNULL = open(os.devnull, 'w')
+    os.chdir(_explorationDir + "/" + _expressionCl)
     printBlue("_tuner ")
     print(_tuner + "/" + _tunerName)
     pathToTuner = _tuner + "/" + _tunerName
@@ -135,7 +136,7 @@ def run():
                     else:
                         atfArg = _explorationDir + "/" + _expressionCl + "/" + fileName + "/" + fn
                         p = subprocess.Popen([_explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _tunerName + " " +  atfArg], shell=True)
-                p.wait()
+                    p.wait()
                 #schreib mal das ergebnis zurueck. GGfs hier anpassen
                 addKernelNameToRow = "sed -i \"" + str(currentKernelNumber) + "s/$/" + str(fn.partition(".")[0]) + "/\" results.csv"
                 os.system(addKernelNameToRow)
