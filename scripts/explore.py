@@ -38,18 +38,22 @@ parser.add_argument('--memoryMappingRewrite', dest='memoryMappingRewrite', actio
         help='run MemoryMappingRewrite')
 parser.add_argument('--parameterRewrite', dest='parameterRewrite', action='store_true',
         help='run ParameterRewrite')
-parser.add_argument('--runHarness', dest='runHarness', action='store_true',
-        help='run harness recursively')
-parser.add_argument('--runAtf', dest='runAtf', action='store_true',
-        help='run atf recursively')
-parser.add_argument('--executeAtf', dest='executeAtf', action='store_true',
-        help='execute with atf and plot results')
-parser.add_argument('--fullAtf', dest='fullAtf', action='store_true',
-        help='run atf recursively')
+
+#parser.add_argument('--runHarness', dest='runHarness', action='store_true',
+#        help='run harness recursively')
+#parser.add_argument('--runAtf', dest='runAtf', action='store_true',
+#        help='run atf recursively')
+#parser.add_argument('--executeAtf', dest='executeAtf', action='store_true',
+#        help='execute with atf and plot results')
+#parser.add_argument('--fullAtf', dest='fullAtf', action='store_true',
+#        help='run atf recursively')
+
 parser.add_argument('--findKernels', dest='findKernels', action='store_true',
         help='find the best and worst kernel')
-parser.add_argument('--gatherTimesAtf', dest='gatherTimesAtf', action='store_true',
-        help='gather runtimes in csv')
+
+#parser.add_argument('--gatherTimesAtf', dest='gatherTimesAtf', action='store_true',
+#        help='gather runtimes in csv')
+
 parser.add_argument('--gatherTimes', dest='gatherTimes', action='store_true',
         help='gather runtimes in csv')
 parser.add_argument('--plot', dest='plot', action='store_true',
@@ -78,8 +82,7 @@ parser.add_argument('--harness', dest='harness', action='store_true',
         help='run the execution harness')
         
 
-#TODO flag naming
-parser.add_argument('--makeTuner', dest='makeTuner', action='store_true',help='just don\'t use this flag!')
+#parser.add_argument('--makeTuner', dest='makeTuner', action='store_true',help='just don\'t use this flag!')
     
 #parser.add_argument('--lowLevelAtf', dest='lowLevelAtf', action='store_true',
 #        help='run the tuning of low level expressions with atf ccfg')
@@ -609,7 +612,7 @@ def setupExploration():
     shutil.copy2(args.config, name)
     #os.chdir(name)
     #init module
-    executionModule.init(json_envConfig,json_config)
+    executionModule.init(json_envConfig,json_config,envConf,configPath)
     os.chdir(name)
     #path json env config
     #path json exploration conf
@@ -633,7 +636,7 @@ else:
     if(args.memoryMappingRewrite): memoryMappingRewrite()
     if(args.parameterRewrite): parameterRewrite()
     
-    if(args.runHarness): runHarness()
+#    if(args.runHarness): runHarness()
     if(args.gatherTimes): gatherTimes()
     if(args.plot): plot()
     if(args.rewrite): rewrite()
@@ -641,9 +644,9 @@ else:
     if(args.removeBlacklist): removeBlacklist()
     if(args.rerun): rerun()
     if(args.full): explore()
-    if(args.runAtf): runAtf()
-    if(args.executeAtf): runAtf()
-    if(args.fullAtf): exploreAtf()
+#    if(args.runAtf): runAtf()
+#    if(args.executeAtf): runAtf()
+#    if(args.fullAtf): exploreAtf()
     if(args.findKernels): findBestAndWorst()
-    if(args.gatherTimesAtf): gatherTimesAtf()
+#    if(args.gatherTimesAtf): gatherTimesAtf()
     
