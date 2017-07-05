@@ -109,7 +109,7 @@ def run():
     #TODO Why does atf output time+6 values when we just tuned 3 values?
     tmpCsvWriter = csv.writer(tmpCsvFile)
     #TODO This header doesn't always match the contents...
-    tmpCsvWriter.writerow(['time','glsize0','glsize1','glsize2','lsize0','lsize1','lsize2','N','v1','llExpression'])
+    tmpCsvWriter.writerow(['llExpression','time','glsize0','glsize1','glsize2','lsize0','lsize1','lsize2','N','v1'])
     
     
     for fileName in os.listdir(_explorationDir+'/'+_expressionLower):
@@ -133,7 +133,7 @@ def run():
                                         
                     next(timesCsvReader) # skip header
                     for line in timesCsvReader:
-                      line.append(llrelPath)
+                      line.insert(0,llrelPath)
                       tmpCsvWriter.writerow(line)
                     timesCsvFile.close()
                     
@@ -144,7 +144,7 @@ def run():
     
 
 #cleans the execution directories and runs the execution afterwards
-#Note: I'm not quite sure if we need a rerun function or if we should just always prepare 
+#Note: I'm not quite sure if we need a rerun function or if we should just always call clean before running. 
 def rerun():
     _checkState()
     clean()
@@ -153,16 +153,16 @@ def rerun():
 #collects the times of the last execution
 def gatherTimes():
     _checkState()
-    sys.exit('not yet implemented')
+    shutil.move(_explorationDir+'/atfCcfg/times.csv',_explorationDir+'/times.csv')
 
 #exports the kernels and the tuned parameters of the best and worst kernels
 def findKernels():
     _checkState()
-    sys.exit('not yet implemented')
+    sys.exit('findKernels not yet implemented')
 
 #tells which rewrites are required to run before the execution module can start its work
 def requiredRewrites():
-    return ("highLevel","memoryMapping")
+    return ('highLevel','memoryMapping')
 
 
 

@@ -104,11 +104,11 @@ envConf = os.path.abspath(os.path.expanduser(args.envConf))
 print('[INFO] using environment config '+envConf)
 if os.path.exists(envConf):
     if not os.path.isfile(envConf):
-        sys.exit("[ERROR] environment config already exists but it's not a file.")
+        err("environment config already exists but it's not a file.")
 else:
     mkEnvironment(envConf)
     if not os.path.exists(envConf):
-        sys.exit("[ERROR] environment config file was not found and could not be created.")
+        err("environment config file was not found and could not be created.")
 json_envFile = open(envConf)
 json_envConfig = json.load(json_envFile)
 
@@ -117,7 +117,7 @@ json_envConfig = json.load(json_envFile)
 print('[INFO] using explore config '+args.config)
 configPath = os.path.expanduser(args.config)
 absoluteConfigPath = os.path.realpath(configPath)
-if not os.path.exists(configPath): sys.exit("[ERROR] config file not found!")
+if not os.path.exists(configPath): err("config file not found!")
 #open Json config
 json_file = open(absoluteConfigPath)
 json_config = json.load(json_file)
@@ -216,13 +216,13 @@ tunerName = json_config["ATF"]["TunerName"]
 ### CSV
 #csvHeader = "kernel,time,lsize0,lsize1,lsize2"
 csvHeader =json_config["CSV"]["Header"]
-epochTimeCsv = "time_" + str(inputSize) +  "_" + name + ".csv"
+timesCsv = 'times.csv'
 timeCsv = "time_" + str(inputSize) + ".csv"
 blacklistCsv = "blacklist_" + str(inputSize) + ".csv"
 
 ### R
 output = expression + "_" + str(inputSize) +  "_" + name + ".pdf"
-RscriptArgs = " --file " + epochTimeCsv + " --out " + output
+RscriptArgs = " --file " + timesCsv + " --out " + output
 
 ### DIRECTORIES
 currentDir = os.getcwd() #current working directory
@@ -245,6 +245,9 @@ def warn(string):
 #TODO move to explore util module
 def info(string):
     print('[INFO] ' + string )
+
+def err(string):
+  sys.exit(bcolors.FAIL + '[ERROR] ' + string + bcolors.ENDC)
 
 class bcolors:
     BLUE= '\033[95m'
@@ -314,6 +317,7 @@ def parameterRewrite():
     callExplorationStage("ParameterRewrite", args)
 
 
+#TODO do we still need this?
 def runHarnessInDir(pathOfDirectory):
     printBlue("\n[INFO] Running Harness with every Kenrel in "+pathOfDirectory)
     
@@ -341,7 +345,7 @@ def runHarnessInDir(pathOfDirectory):
 
             p.wait()
 
-
+#TODO do we still need this?
 def generateCostFile(pathOfDirectory):
     printBlue("\n[INFO] Generating cost file in "+pathOfDirectory)
     os.chdir(pathOfDirectory)
@@ -379,6 +383,7 @@ def generateCostFile(pathOfDirectory):
    
 
 #TODO check if we still need this
+"""
 def atfHarness():
     #check if environment config exists #TODO Why should we check this here?
     runDir = args.atfHarnessDir
@@ -394,14 +399,16 @@ def atfHarness():
         
         csvFile = open(runDir+"/"+timeCsv,"r")
         next(csvFile) #skip the first line
-        gatheredCsv = open(runDir+"/../"+epochTimeCsv,"a")
+        gatheredCsv = open(runDir+"/../"+timesCsv,"a")
         for line in csvFile:
             gatheredCsv.write(line)     
         
         clearDir(runDir)  
+"""
 
 
-#TODO check if we still need this
+#TODO check if we still need this.
+"""
 def lowLevelAtf():
     printBlue("\n[INFO] Tuning low level expressions with atf -- " )
     executedKernels =1         
@@ -424,12 +431,12 @@ def lowLevelAtf():
                     else:
                         print("Path was not a file: \""+lowLevelPath+"\"\n")
                 #TODO evil hacky code!
-                addHeader = "sed -i 1i\""+ csvHeader + "\" " + explorationDir+'/'+expressionCl+'/'+epochTimeCsv
+                addHeader = "sed -i 1i\""+ csvHeader + "\" " + explorationDir+'/'+expressionCl+'/'+timesCsv
                 os.system(addHeader)               
             else: print("index file is missing for "+explorationDir+"/"+expressionLower+"/"+fileName)
 
                 
-            """
+            
             for fn in os.listdir(explorationDir+"/"+expressionLower+"/"+fileName):
                 if fn =="index":
                     indexFile= open(explorationDir+"/"+expressionLower+"/"+fileName+"/index","r")
@@ -447,8 +454,10 @@ def lowLevelAtf():
                             
                         else:
                             print("Path was not a file: \""+lowLevelPath+"\"\n")
-            """
-#TODO check if we still need this
+"""
+            
+#TODO check if we still need this.
+"""
 def makeAtfScripts(lowLevelExpressionPath, lowLevelHash):
     printBlue("\n[INFO] Generating compile.sh and run.sh for low level expression "+lowLevelHash+" -- " )
     if(not os.path.isdir(lowLevelTuner) or not os.path.isfile(lowLevelTuner+'/lowLevelLift')):
@@ -475,6 +484,7 @@ def makeAtfScripts(lowLevelExpressionPath, lowLevelHash):
     runScript.write(executor+'/scripts/explore.py --atfHarness --atfHarnessDir '+explorationDir+'/'+expressionCl+'/'+lowLevelHash +" "+absoluteConfigPath)
     runScript.close()
     make_executable(explorationDir+'/atfCcfg/runScript.sh')
+"""
 
 #TODO move to explore util module
 def make_executable(path):
@@ -502,7 +512,7 @@ def isfloat(x):
 def plot():
     printBlue("\n[INFO] Plotting results")
     silent_mkdir(plotsDir)
-    shutil.copy2(expressionCl + "/" + epochTimeCsv, plotsDir)
+    shutil.copy2(timesCsv, plotsDir)
     shutil.copy2(Rscript, plotsDir)
     os.chdir(plotsDir)
     command = "Rscript " + Rscript + RscriptArgs
@@ -594,6 +604,7 @@ def removeCsv(name):
     command = "find . -name \"" + name + "_" + str(inputSize) + ".csv\" | xargs rm"
     os.system(command)
 
+#TODO gehört ins clean vom harness Modul glaube ich...
 def removeBlacklist():
     printBlue("[INFO] Removing blacklist:")
     os.chdir(expressionCl)
@@ -612,41 +623,53 @@ def setupExploration():
     shutil.copy2(args.config, name)
     #os.chdir(name)
     #init module
-    executionModule.init(json_envConfig,json_config,envConf,configPath)
     os.chdir(name)
     #path json env config
     #path json exploration conf
 
-# START OF SCRIPT ##################################################
-if(args.harness): 
-    executionModule = importlib.import_module("harnessTuning", package=None)
-    print("Loaded harness module\n")
-if(args.llatf): 
-    executionModule = importlib.import_module("lowLevelTuning", package=None)
-    print("Loaded llatf module\n")
-if(args.atf): 
-    executionModule = importlib.import_module("kernelTuning", package=None)
-    print("Loaded atf module\n")
+def moduleRequired(args):  
+  if(args.gatherTimes or args.execute or args.rerun or args.full):
+    return True
+  else:
+    return False
+  
+def setupModule(args):
+  if(moduleRequired(args)):
+    global executionModule
+    if(args.harness): 
+      executionModule = importlib.import_module("harnessTuning", package=None)
+      print("Loaded harness module\n")
+    elif(args.llatf): 
+      executionModule = importlib.import_module("lowLevelTuning", package=None)
+      print("Loaded llatf module\n")
+    elif(args.atf): 
+      executionModule = importlib.import_module("kernelTuning", package=None)
+      print("Loaded atf module\n")
+    else:
+      err('Trust me! We can\'t use module methods without loading a module! ')
+    
+    executionModule.init(json_envConfig,json_config,envConf,configPath)
 
+# START OF SCRIPT ##################################################  
 if(args.clean): clean()
 else:
-
-    setupExploration()
-    if(args.highLevelRewrite): highLevelRewrite()
-    if(args.memoryMappingRewrite): memoryMappingRewrite()
-    if(args.parameterRewrite): parameterRewrite()
-    
-#    if(args.runHarness): runHarness()
-    if(args.gatherTimes): gatherTimes()
-    if(args.plot): plot()
-    if(args.rewrite): rewrite()
-    if(args.execute): execute()
-    if(args.removeBlacklist): removeBlacklist()
-    if(args.rerun): rerun()
-    if(args.full): explore()
-#    if(args.runAtf): runAtf()
-#    if(args.executeAtf): runAtf()
-#    if(args.fullAtf): exploreAtf()
-    if(args.findKernels): findBestAndWorst()
-#    if(args.gatherTimesAtf): gatherTimesAtf()
+  setupModule(args)
+  setupExploration()
+  if(args.highLevelRewrite): highLevelRewrite()
+  if(args.memoryMappingRewrite): memoryMappingRewrite()
+  if(args.parameterRewrite): parameterRewrite()
+  
+# if(args.runHarness): runHarness()
+  if(args.gatherTimes): executionModule.gatherTimes()
+  if(args.plot): plot()
+  if(args.rewrite): rewrite()
+  if(args.execute): execute()
+  if(args.removeBlacklist): removeBlacklist()
+  if(args.rerun): rerun()
+  if(args.full): explore()
+# if(args.runAtf): runAtf()
+# if(args.executeAtf): runAtf()
+# if(args.fullAtf): exploreAtf()
+  if(args.findKernels): executionModule.findKernels()
+# if(args.gatherTimesAtf): gatherTimesAtf()
     
