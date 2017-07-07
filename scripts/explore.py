@@ -556,8 +556,11 @@ def explore():
     explorationLength = elapsed
     printBlue("[INFO] Finished exploration! Took " + str(elapsed) + " minutes to execute")
     printSummary()
-    saveExplorationMetaInformation()
     executionModule.findKernels()
+    saveExplorationMetaInformation()
+    #executionModule.findKernels()
+
+
 
 def printOccurences(name):
     print(bcolors.BLUE + "[INFO] " + name + ": " + bcolors.ENDC, end='', flush=True)

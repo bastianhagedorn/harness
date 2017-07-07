@@ -34,8 +34,8 @@ _expressionLower = None
 _liftScripts = None
 _expressionCl = None
 
-#atf
-_atfCsvHeader = None
+#csv
+_csvHeader = None
 
 #harness
 _harness = None
@@ -57,7 +57,7 @@ def init(envConf, explorationConf, envConfPath, explorationConfPath):
     global _lift, _atf, _tuner, _executor, _harness, _harnessArgs,  _clPlattform, _clDevice
     global _expression, _name, _inputSize, _cwd, _explorationDir, _expressionLower, _expressionCl, _liftScripts
     global _timeCsv, _epochTimeCsv
-    global _atfCsvHeader
+    global _csvHeader
     global _ready
     if(_ready): return
     #read the environment values required for this module to work
@@ -83,7 +83,9 @@ def init(envConf, explorationConf, envConfPath, explorationConfPath):
     _harness = explorationConf['Harness']['Name']
 
     _timeCsv = "time_" + str(_inputSize) + ".csv"
-    _epochTimeCsv = "time_" + str(_inputSize) + "_" + _name + ".csv"
+    _epochTimeCsv = "times.csv"
+    
+    _csvHeader = explorationConf["CSV"]["Header"]
     
     #module is ready to use now
     _ready = True
@@ -157,11 +159,11 @@ def gatherTimes():
     _checkState()
     printBlue("\n[INFO] Gather time -- " + _epochTimeCsv)
 
-    timeCsvFilePaths = findAll(timeCsv, _explorationDir + "/" + _expressionCl)
+    timeCsvFilePaths = findAll(_timeCsv, _explorationDir + "/" + _expressionCl)
     #open the gatheredTimeFile in append mode.
     with open(_explorationDir + "/" + _expressionCl + "/" + _epochTimeCsv, "a") as gatheredTimeFile:
         #write header first
-        gatheredTimeFile.write(_atfCsvHeader) 
+        gatheredTimeFile.write(_csvHeader) 
         for csvfile in timeCsvFilePaths:
             #now write all times from the found timecsv files to the gatheredTimeFile
             with open(csvfile, "r") as currentCsvFile:
@@ -244,7 +246,7 @@ def findKernels():
     shutil.copy2(bestKernelLowLevelExpressionPath, _explorationDir + "/bestkernel/expression.low")
     #save expression.high
     bestKernelHighLevelHash = getVariable(explorationDir + "/bestkernel/kernel.cl", "High-level hash:")
-    bestKernelHighLevelExpressionPath = find(bestKernelHighLevelHash, _explorationDir + "/" + _expressionLower)
+    bestKernelHighLevelExpressionPath = find(bestKernelHighLevelHash, _explorationDir + "/" + _expression)
     shutil.copy2(bestKernelHighLevelExpressionPath, _explorationDir + "/bestkernel/expression.high")
 
     
@@ -262,7 +264,7 @@ def findKernels():
     shutil.copy2(worstKernelLowLevelExpressionPath, _explorationDir + "/worstkernel/expression.low")
     #save expression.high
     worstKernelHighLevelHash = getVariable(explorationDir + "/worstkernel/kernel.cl", "High-level hash:")
-    worstKernelHighLevelExpressionPath = find(worstKernelHighLevelHash, _explorationDir + "/" + _expressionLower)
+    worstKernelHighLevelExpressionPath = find(worstKernelHighLevelHash, _explorationDir + "/" + _expression)
     shutil.copy2(worstKernelHighLevelExpressionPath, _explorationDir + "/worstkernel/expression.high")
     
 
@@ -339,6 +341,14 @@ def getVariable(filePath, variableName):
     rest = ffile[ini:]
     search_enter = rest.find('\n')
     return rest[:search_enter]
+
+def isfloat(x):
+    try:
+        a = float(x)
+    except ValueError:
+        return False
+    else:
+        return True
  
 def countGeneratedKernels():
     explorationDir = _explorationDir
