@@ -637,13 +637,13 @@ def setupModule(args):
   if(moduleRequired(args)):
     global executionModule
     if(args.harness): 
-      executionModule = importlib.import_module("harnessTuning", package=None)
+      executionModule = importlib.import_module("harnessExecution", package=None)
       print("Loaded harness module\n")
     elif(args.llatf): 
       executionModule = importlib.import_module("lowLevelTuning", package=None)
       print("Loaded llatf module\n")
     elif(args.atf): 
-      executionModule = importlib.import_module("kernelTuning", package=None)
+      executionModule = importlib.import_module("genericTuning", package=None)
       print("Loaded atf module\n")
     else:
       err('Trust me! We can\'t use module methods without loading a module! ')
