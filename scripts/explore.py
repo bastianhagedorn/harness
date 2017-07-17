@@ -510,6 +510,8 @@ def isfloat(x):
 
 
 def plot():
+
+    os.chdir(explorationDir)
     printBlue("\n[INFO] Plotting results")
     os.chdir(explorationDir)
     silent_mkdir(plotsDir)
