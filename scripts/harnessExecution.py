@@ -15,12 +15,13 @@ import time
 #Also note: these can be accessed from the outside of the module but one should not do this.
 _ready = False
 #environment
-    #Paths
+#Paths
 _lift = None
 _atf = None
 _tuner = None
 _executor = None
-    #openCL
+
+#openCL
 _clPlattform = None
 _clDevice = None
 
@@ -155,7 +156,6 @@ def rerun():
 
 #collects the times of the last execution
 def gatherTimes():
-    print("Warning! gatherTimes is not tested yet!")
     _checkState()
     printBlue("\n[INFO] Gather time -- " + _epochTimeCsv)
 

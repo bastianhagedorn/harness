@@ -511,8 +511,9 @@ def isfloat(x):
 
 def plot():
     printBlue("\n[INFO] Plotting results")
+    os.chdir(explorationDir)
     silent_mkdir(plotsDir)
-    shutil.copy2(timesCsv, plotsDir)
+    shutil.copy2(expressionCl + "/" + timesCsv, plotsDir)
     shutil.copy2(Rscript, plotsDir)
     os.chdir(plotsDir)
     command = "Rscript " + Rscript + RscriptArgs
