@@ -212,7 +212,7 @@ def _prepareTuner(lowLevelExpressionPath):
     mainCpp.write('auto cf = atf::cf::ccfg("./runScript.py", "./runScript.py", true, "./costfile.txt");\n')
     gsvars.extend(lsvars)
     gsvars.extend(tpvars)
-    mainCpp.write('auto best_config = atf::open_tuner(atf::cond::duration<std::chrono::seconds>(60))('+', '.join(gsvars)+')(cf);\n')
+    mainCpp.write('auto best_config = atf::open_tuner(atf::cond::speedup(1.0,50))('+', '.join(gsvars)+')(cf);\n')
     mainCpp.write('}\n')
     
     mainCpp.close()

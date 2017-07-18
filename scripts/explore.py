@@ -633,7 +633,7 @@ def setupExploration():
     #path json exploration conf
 
 def moduleRequired(args):  
-  if(args.gatherTimes or args.execute or args.rerun or args.full):
+  if(args.gatherTimes or args.execute or args.rerun or args.full or args.rewrite):
     return True
   else:
     return False

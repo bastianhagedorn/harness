@@ -80,7 +80,7 @@ def init(envConf, explorationConf, envConfPath, explorationConfPath):
     _expressionLower = _expression + "Lower"
     _expressionCl = _expression + "Cl"
     
-    _harnessArgs = explorationConf['Harness']['Args']
+    _harnessArgs = explorationConf['Harness']['Args']+' -p '+_clPlattform+' -d '+_clDevice #ugly! NONONO DON'T DO THIS!
     _harness = explorationConf['Harness']['Name']
 
     _timeCsv = "time_" + str(_inputSize) + ".csv"
