@@ -195,7 +195,7 @@ def rerun():
 #collects the times of the last execution
 def gatherTimes():
   _checkState()
-  shutil.move(_explorationDir+'/atf/times.csv',_explorationDir+'/times.csv')
+  shutil.move(_explorationDir+'/atf/times.csv',_explorationDir+'/' + _expressionCl +'/times.csv')
   
   
   
