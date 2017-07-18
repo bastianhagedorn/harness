@@ -86,116 +86,192 @@ def init(envConf, explorationConf, envConfPath, explorationConfPath):
 def clean():
     print("Warning! Cleaning not tested yet!")
     #search kernel folders
-    for fileName in os.listdir(explorationDir + "/" + expressionCl):
+    clDir = _explorationDir + "/" + _expressionCl
+    for fileName in os.listdir(clDir):
         if filenName.endswith(".csv"):
             #clean gathered times csv
-            silentremove(explorationDir + "/" + expressionCl + "/" + fileName)
-        if os.path.isdir(explorationDir + "/" + expressionCl + "/" + fileName):
+            silentremove(clDir + "/" + fileName)
+        elif os.path.isdir(clDir + "/" + fileName):
             #remove tuner from the folder
-            silentremove(explorationDir + "/" + expressionCl + "/" + fileName + "/" + tunerName)
+            silentremove(clDir + "/" + fileName + "/" + tunerName)
             #remove results.csv
-            silentremove(explorationDir + "/" + expressionCl + "/" + fileName + "/results.csv")
+            silentremove(clDir + "/" + fileName + "/results.csv")
 
             
 
 #runs the exectution
 def run():
-    print("Warning! Exectution is not tested yet!")
-    _checkState()
-    printBlue("\n[INFO] Tuning OpenCL kernels with atf -- ")
-    silent = bool(False)
-    #args in some case not initialized
-    #if(args.silentExecution): 
-    #    silent = bool(True)
-    #    printBlue("[INFO] Running in silent mode\n")
-    
-    #redirecting stdout of subprocesses to fnull
-    FNULL = open(os.devnull, 'w')
-    os.chdir(_explorationDir + "/" + _expressionCl)
-    printBlue("_tuner ")
-    print(_tuner + "/" + _tunerName)
-    pathToTuner = _tuner + "/" + _tunerName
-    
-    kernelNumber = countGeneratedKernels()         
-    executedKernels = 1         
-    #search kernel folders
-    for fileName in os.listdir(_explorationDir + "/" + _expressionCl):
-        if os.path.isdir(_explorationDir + "/" + _expressionCl + "/" + fileName):
-            #copy tuner to the folder
-            shutil.copy2(pathToTuner, _explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _tunerName)
-            #run atf with every kernel in the folder
-            currentKernelNumber = 1;
-            for fn in os.listdir(_explorationDir + "/" + _expressionCl + "/" + fileName):
-                if fn.endswith(".cl"):
-                    if(silent):
-                        sys.stdout.write("Progress: {}/{}   \r".format(executedKernels, kernelNumber))
-                        sys.stdout.flush()
-                        atfArg = _explorationDir + "/" + _expressionCl + "/" + fileName + "/" + fn
-                        p = subprocess.Popen([_explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _tunerName + " " + atfArg], stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
-                        #eventuell einen fehler hier
-                    else:
-                        atfArg = _explorationDir + "/" + _expressionCl + "/" + fileName + "/" + fn
-                        p = subprocess.Popen([_explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _tunerName + " " +  atfArg], shell=True)
-                    p.wait()
-                    #schreib mal das ergebnis zurueck. GGfs hier anpassen
-                    addKernelNameToRow = "sed -i \"" + str(currentKernelNumber) + "s/$/" + str(fn.partition(".")[0]) + "/\" results.csv"
-                    os.system(addKernelNameToRow)
-                    currentKernelNumber += 1
-                    executedKernels += 1
+  print("Warning! Exectution is not tested yet!")
+  _checkState()
+  printBlue("\n[INFO] Tuning OpenCL kernels with atf -- ")
+  silent = bool(False)
+  #args in some case not initialized
+  #if(args.silentExecution): 
+  #    silent = bool(True)
+  #    printBlue("[INFO] Running in silent mode\n")
+  
+  print("using tuner " + _tuner + "/" + _tunerName)
+      
+  kernelNumber = countGeneratedKernels()         
+  executedKernels = 1   
+  
+  #prepare the tuning
+  tunerDir = _explorationDir + '/atf'
+  silent_mkdir(tunerDir)
+  print('copying tuner to ' + tunerDir+'/'+_tunerName)
+  shutil.copy2(_tuner + "/" + _tunerName, tunerDir+'/'+_tunerName)
+  
+  timesCsvFile = open(tunerDir+'/times.csv','w')
+  timesCsvWriter = csv.writer(timesCsvFile)
+  #TODO This header won't match the contents when we tune more than gs/ls
+  timesCsvWriter.writerow(['time','unknown0','unknown1','unknown2','glsize0','lsize0','kernel'])
+  
+  
+  #enter each cl expression dir
+  for fileName in os.listdir(_explorationDir + "/" + _expressionCl):
+    if os.path.isdir(_explorationDir + "/" + _expressionCl + "/" + fileName):
+      expressionDir=_explorationDir + "/" + _expressionCl + "/" + fileName
+      #run atf with every kernel in the folder
+      #for each file in that dir check if it's an openCL file
+      for clKernel in os.listdir(expressionDir):
+        clKernelPath=expressionDir + '/' + clKernel
+        if os.path.isfile(clKernelPath) and clKernel.endswith('.cl'):
+          
+          if(silent):
+            stdout=subprocess.FNULL
+            stderr=subprocess.STDOUT
+            sys.stdout.write("Progress: {}/{}   \r".format(executedKernels, kernelNumber))
+            sys.stdout.flush()
+          else:
+            stdout=None
+            stderr=None               
+          
+          p = subprocess.Popen([tunerDir+'/'+_tunerName, clKernelPath], stdout=stdout, stderr=stderr, cwd=tunerDir)
+          p.wait()
+          
+          resultsCsvFile = open(tunerDir+'/results.csv','r')
+          resultsCsvReader = csv.reader(resultsCsvFile)
+          
+          # results.csv doesn't have a header so we don't need to skip it.
+          for line in resultsCsvReader:
+            line[0]=str(float(line[0]) * (10**6))
+            line[-1]=clKernel
+            timesCsvWriter.writerow(line)
+          resultsCsvFile.close()
+          silentremove(tunerDir+'/results.csv') # we have to remove it otherwise atf will append to it.
+          
+          executedKernels += 1
 
+        else:
+          warn('Not a .cl file: "' + expressionDir + '/' + clKernel + '"')
+  
+  timesCsvFile.close()
+  
+
+  """
+  if(silent):
+      sys.stdout.write("Progress: {}/{}   \r".format(executedKernels, kernelNumber))
+      sys.stdout.flush()
+      atfArg = _explorationDir + "/" + _expressionCl + "/" + fileName + "/" + clKernel
+      p = subprocess.Popen([_explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _tunerName + " " + atfArg], stdout=subprocess.FNULL, stderr=subprocess.STDOUT, shell=True)
+      #eventuell einen fehler hier
+  else:
+      atfArg = _explorationDir + "/" + _expressionCl + "/" + fileName + "/" + clKernel
+      p = subprocess.Popen([_explorationDir + "/" + _expressionCl + "/" + fileName + "/" + _tunerName + " " +  atfArg], shell=True)
+  p.wait()
+  """
+  
+  """
+  #schreib mal das ergebnis zurueck. GGfs hier anpassen
+  addKernelNameToRow = "sed -i \"" + str(currentKernelNumber) + "s/$/" + str(clKernel.partition(".")[0]) + "/\" results.csv"
+  os.system(addKernelNameToRow)
+  """
 #cleans the execution directories and runs the execution afterwards
-#Note: I'm not quite sure if we need a rerun function or if we should just always prepare 
+#Note: I'm not quite sure if we need a rerun function or if we should just always clean the dir before running
 def rerun():
-    _checkState()
-    clean()
-    run()
+  clean()
+  run()
 
 #collects the times of the last execution
 def gatherTimes():
-    print("Warning! gatherTimes is not tested yet!")
-    _checkState()
-    epochTimeCsv = "time_" + str(_inputSize) + "_" + _name + ".csv"
-    timeCsv = "time_" + str(_inputSize) + ".csv"
+  _checkState()
+  shutil.move(_explorationDir+'/atf/times.csv',_explorationDir+'/times.csv')
+  
+  
+  
+  """
+  print("Warning! gatherTimes is not tested yet!")
+  _checkState()
+  timesCsv = _explorationDir+'/times.csv'
+  #timeCsv = "time_" + str(_inputSize) + ".csv"
 
-    printBlue("\n[INFO] Gather time -- " + epochTimeCsv)
+  printBlue("\n[INFO] Gathering times to " + timesCsv)
 
-    timeCsvFilePaths = findAll("results.csv", _explorationDir + "/"+_expressionCl)
-    #open the gatheredTimeFile in append mode.
-    with open(_explorationDir + "/" + _expressionCl + "/" + epochTimeCsv, "a") as gatheredTimeFile:
-       #write header first
-       gatheredTimeFile.write(_atfCsvHeader)
-       for csvfile in timeCsvFilePaths:
-            #now write all times from the found timecsv files to the gatheredTimeFile
-            with open(csvfile, "r") as currentCsvFile:
-                gatheredTimeFile.write(currentCsvFile.read())
+  timeCsvFilePaths = findAll("results.csv", _explorationDir + "/"+_expressionCl)
+  #open the gatheredTimeFile in append mode.
+  with open(_explorationDir + "/" + _expressionCl + "/" + timesCsv, "a") as gatheredTimeFile:
+      #write header first
+      gatheredTimeFile.write(_atfCsvHeader)
+      for csvfile in timeCsvFilePaths:
+          #now write all times from the found timecsv files to the gatheredTimeFile
+          with open(csvfile, "r") as currentCsvFile:
+              gatheredTimeFile.write(currentCsvFile.read())
+  """
        		
 #exports the kernels and the tuned parameters of the best and worst kernels
 def findKernels():
+  return
+"""  
     print("Warning! findKernels is not tested yet!")
     _checkState()
     printBlue("\n[INFO] Searching best and worst kernel -- ")
-    csvFile = open(explorationDir + "/" + expressionCl + "/" + epochTimeCsv, "r")
+    timesCsvFile = open(_explorationDir+'/times.csv', "r")
     #lists for the csv values
     rows = []
     times = []
     kernels = []
     header = 0
     #parsing the csv values
-    reader = csv.reader(csvFile)
+    timesCsvReader = csv.DictReader(timesCsvFile)
     rownum = 0
-    for row in reader:
-        if rownum == 0: header = row
-        else:
-            colnum = 0
-            for col in row:
-                if header[colnum] == "time": times.append(col)
-                if header[colnum] == "kernel": kernels.append(col)
-                
-                colnum += 1
-            rows.append(row) 
-        rownum += 1
-            
-    csvFile.close()
+    
+    # init as very high/very low so we don't need to handle the first value explicitly.
+    bestTime=float('inf')
+    worstTime=0
+    bestConfig=None
+    worstConfig=None
+    for row in timesCsvReader:
+      time=row['time']
+      if(time > worstTime):
+        worstTime=time
+        worstConfig=row
+      
+      if(time < bestTime):
+        bestTime=time
+        worstConfig=row
+        
+    print('best')
+    print(bestConfig)
+    
+    print('worst')
+    print(worstConfig)
+ """     
+ 
+"""
+      if rownum == 0:
+        header = row
+      else:
+        colnum = 0
+        for col in row:
+          if header[colnum] == "time": times.append(col)
+          if header[colnum] == "kernel": kernels.append(col)
+          
+          colnum += 1
+        rows.append(row) 
+      rownum += 1
+"""
+"""  
+    timesCsvFile.close()
     #find the best and worst kernel
     index = 0
     bestTime = 99999999
@@ -262,7 +338,7 @@ def findKernels():
     worstKernelHighLevelHash = getVariable(explorationDir + "/worstkernel/kernel.cl", "High-level hash:")
     worstKernelHighLevelExpressionPath = find(worstKernelHighLevelHash, _explorationDir + "/" + _expressionLower)
     shutil.copy2(worstKernelHighLevelExpressionPath, _explorationDir + "/worstkernel/expression.high")
-
+"""
 
 #tells which rewrites are required to run before the execution module can start its work
 def requiredRewrites():
