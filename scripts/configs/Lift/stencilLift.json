@@ -1,38 +1,38 @@
 {
 	"General":{
-		"Expression":"convolution2D",
+		"Expression":"stencil1D",
 		"InputSize": 1024,
-		"Name":"reduceSeq"
+		"Name":"harnessStencil"
 	},
 	"HighLevelRewrite":{
 		"Depth":6,
-		"Distance":9,
-		"ExplorationDepth":5,
+		"Distance":8,
+		"ExplorationDepth":6,
 		"Repetition":1,
-		"Collection":"convolution2D",
+		"Collection":"convolution1D",
 		"OnlyLower":false
 	},
 	"MemoryMappingRewrite":{
 		"UnrollReduce":true,
-		"Global0":true,
+		"Global0":false,
 		"Global01":false,
-		"Global10":false,
+		"Global10":true,
 		"Global012":false,
 		"Global210":false,
 		"Group0":false,
 		"Group01":false,
-		"Group10":false
+		"Group10":true
 	},
 	"ParameterRewrite":{
 		"Sequential":false,
-		"Settings":"convolution2D.json",
+		"Settings":"stencil1D.json",
 		"DisableNDRangeInjection":false,
-		"ExploreNDRange":true,
+		"ExploreNDRange":false,
 		"SampleNDRange":10
 	},
 	"Harness":{
-		"Name":"harness_convolution2D",
-		"Args":"-m 1024 -n 1024 -i 10"
+		"Name":"harness_stencil",
+		"Args":"-s 1024"
 	},
 	"ATF":{
 		"Header":"time,number_of_valid_evaluated_configs,evaluations_required_to_find_best_found_result,valid_evaluations_required_to_find_best_found_result,GS,LS,kernel",

@@ -1,15 +1,15 @@
 {
 	"General":{
-		"Expression":"shocStencil2D",
+		"Expression":"stencil1D",
 		"InputSize": 1024,
-		"Name":"testrun"
+		"Name":"lowStencil"
 	},
 	"HighLevelRewrite":{
 		"Depth":6,
-		"Distance":9,
-		"ExplorationDepth":5,
+		"Distance":8,
+		"ExplorationDepth":6,
 		"Repetition":1,
-		"Collection":"convolution2D",
+		"Collection":"convolution1D",
 		"OnlyLower":false
 	},
 	"MemoryMappingRewrite":{
@@ -25,14 +25,14 @@
 	},
 	"ParameterRewrite":{
 		"Sequential":false,
-		"Settings":"shocStencil2D.json",
-		"DisableNDRangeInjection":true,
-		"ExploreNDRange":true,
-		"SampleNDRange":20
+		"Settings":"stencil1D.json",
+		"DisableNDRangeInjection":false,
+		"ExploreNDRange":false,
+		"SampleNDRange":10
 	},
 	"Harness":{
-		"Name":"harness_shocStencil2D",
-		"Args":"-m 1024 -n 1024 -i 10"
+		"Name":"harness_stencil",
+		"Args":"-s 1024"
 	},
 	"ATF":{
 		"Header":"time,number_of_valid_evaluated_configs,evaluations_required_to_find_best_found_result,valid_evaluations_required_to_find_best_found_result,GS,LS,kernel",

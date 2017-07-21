@@ -1,15 +1,15 @@
 {
 	"General":{
-		"Expression":"shocStencil2D",
+		"Expression":"mm",
 		"InputSize": 1024,
-		"Name":"testrun"
+		"Name":"genericMM"
 	},
 	"HighLevelRewrite":{
 		"Depth":6,
 		"Distance":9,
 		"ExplorationDepth":5,
 		"Repetition":1,
-		"Collection":"convolution2D",
+		"Collection":"default",
 		"OnlyLower":false
 	},
 	"MemoryMappingRewrite":{
@@ -25,13 +25,13 @@
 	},
 	"ParameterRewrite":{
 		"Sequential":false,
-		"Settings":"shocStencil2D.json",
+		"Settings":"mm.json",
 		"DisableNDRangeInjection":true,
-		"ExploreNDRange":true,
-		"SampleNDRange":20
+		"ExploreNDRange":false,
+		"SampleNDRange":10
 	},
 	"Harness":{
-		"Name":"harness_shocStencil2D",
+		"Name":"harness_mm",
 		"Args":"-m 1024 -n 1024 -i 10"
 	},
 	"ATF":{
