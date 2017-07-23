@@ -126,7 +126,6 @@ def run():
                     exit(0)
                     p = subprocess.Popen(['./lowLevelLift'], cwd=atfCcfgDir)
                     p.wait()
-                    exit(0)
                     
                     #addLExpression to the csv and move the contents over to the tmpCsv
                     #TODO we can't simply append the contents. We need to take care of differences in the header.
@@ -204,9 +203,9 @@ def _prepareTuner(lowLevelExpressionPath):
     
     runScript.write('p = subprocess.Popen([\n  "'+_liftScripts+'/KernelGenerator",\n')
     runScript.write('  "--env", "'+_envConfPath+'",\n')
-    runScript.write('  "--gs", "'+ ','.join(['<$TP:'+v+'>' for v in gsvars]) +'",\n')
-    runScript.write('  "--ls", "'+ ','.join(['<$TP:'+v+'>' for v in lsvars]) +'",\n')
-    runScript.write('  "--vars", "1024,'+','.join(['<$TP:'+v+'>' for v in tpvars])+'",\n') #TODO problemsizes hardcoded!
+    runScript.write('  "--gs", "'+ ','.join([v for v in gsvars]) +'",\n')
+    runScript.write('  "--ls", "'+ ','.join([v for v in lsvars]) +'",\n')
+    runScript.write('  "--vars", "1024,'+','.join([v for v in tpvars])+'",\n') #TODO problemsizes hardcoded!
     runScript.write('  "'+lowLevelExpressionPath+'"\n])\n')
     
     runScript.write('exit(p.wait())\n')

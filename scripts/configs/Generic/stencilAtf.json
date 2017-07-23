@@ -14,14 +14,14 @@
 	},
 	"MemoryMappingRewrite":{
 		"UnrollReduce":true,
-		"Global0":false,
+		"Global0":true,
 		"Global01":false,
-		"Global10":true,
+		"Global10":false,
 		"Global012":false,
 		"Global210":false,
-		"Group0":false,
+		"Group0":true,
 		"Group01":false,
-		"Group10":true
+		"Group10":false
 	},
 	"ParameterRewrite":{
 		"Sequential":false,
