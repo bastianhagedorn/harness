@@ -8,7 +8,7 @@ import pprint
 #Eine dependency is wat wo nen tp und children haben tut
 def _recursiveWriteTps(tpMap, dependency, mainCpp):
   tp=dependency['tp']
-  mainCpp.write('auto '+tp['name']+' = atf::tp( "{'+tp['name']+'}"')
+  mainCpp.write('auto '+tp['name']+' = atf::tp( "'+tp['name']+'"')
   if('interval' in tp):
     interval=tp['interval']
     mainCpp.write(', atf::interval<'+interval['type']+'>('+str(interval['from'])+','+str(interval['to'])+')')
