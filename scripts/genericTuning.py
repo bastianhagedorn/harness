@@ -149,6 +149,7 @@ def run():
           p = subprocess.Popen([tunerDir+'/'+_tunerName, clKernelPath], stdout=stdout, stderr=stderr, cwd=tunerDir)
           p.wait()
           
+          print("tunerDir: " + tunerDir)
           resultsCsvFile = open(tunerDir+'/results.csv','r')
           resultsCsvReader = csv.reader(resultsCsvFile)
           
@@ -220,7 +221,104 @@ def gatherTimes():
        		
 #exports the kernels and the tuned parameters of the best and worst kernels
 def findKernels():
-  return
+    printBlue("\n[INFO] Searching best and worst kernel -- ")
+
+    _checkState()
+
+    #open CsvFile "times.csv"
+    timesCsvFile = open(_explorationDir+ "/" + _expressionCl + "/" +"times.csv", "r")
+    
+    #init reader
+    reader = csv.reader(timesCsvFile)
+
+    #read in header 
+    header = next(reader)
+
+    timeIndex = 0
+    kernelIndex = 0
+    #get indices of time and kernel 
+    for col in header:
+        if col == "time":
+            break
+        timeIndex += 1
+
+    for col in header:
+        if col == "kernel":
+            break
+        kernelIndex += 1
+
+    #init current minTime, current minKernel, minKernelRowNum
+    currentMinTime = 0
+    currentMinKernel = " "
+    minKernelRowNum = 0
+
+    #because we don't know maximum time, init with first kernel and his time found in firstLine after header 
+    #save rowNum of first kernel as well
+    firstLine = next(reader)
+    rowNum = 1
+
+    #get time, kernelname and rowNumber an write it to variables
+    colnum = 0
+    currentMinTime = firstLine[timeIndex]
+    currentMinKernel = firstLine[kernelIndex]
+    minKernelRowNum = rowNum
+
+    #get minKernel
+    #iterate over rows 
+    for row in reader:
+        rowNum += 1
+        #if time is smaller than current mintime 
+        try:
+            if float(row[timeIndex]) < float(currentMinTime):
+                currentMinTime = row[timeIndex]
+                minKernelRowNum = rowNum
+                currentMinKernel = row[kernelIndex]
+        except IndexError:
+            break
+
+    #close timesCsvFile
+    timesCsvFile.close()
+
+    
+    #get Kernel, save information and code to bestKernelsFolder 
+
+    #get header from times 
+    with open(_explorationDir+ "/" + _expressionCl + "/" +"times.csv") as file:
+        header = list(file)[0]
+
+    #get row of minKernel from times 
+    with open(_explorationDir + "/" + _expressionCl + "/" + "times.csv") as file:
+        minKernelRow = list(file)[minKernelRowNum]
+
+    #create folder 
+    silent_mkdir(_explorationDir + "/" + "bestkernel")
+
+    #delete old kernelinfo.csv if exists 
+    try:
+        os.remove(_explorationDir + "/bestkernel/kernelinfo.csv")
+    except OSError:
+        pass
+
+    #create kernelinfo.csv and write row to file
+    with open(_explorationDir + "/bestkernel/kernelinfo.csv", "a") as kernelinfo:
+        kernelinfo.write(str(header))
+        kernelinfo.write(str(minKernelRow))
+    
+    #save kernel
+    bestKernelFilePath = find(currentMinKernel, _explorationDir + "/" + _expressionCl)
+    shutil.copy2(bestKernelFilePath, _explorationDir + "/bestkernel/" + currentMinKernel)
+
+    #save lowLevelExpression
+    bestKernelLowLevelHash = getVariable(_explorationDir + "/bestkernel/" + currentMinKernel, "Low-level hash:")
+    bestKernelLowLevelExpressionPath = find(bestKernelLowLevelHash, _explorationDir + "/" + _expressionLower)
+    shutil.copy2(bestKernelLowLevelExpressionPath, _explorationDir + "/bestkernel/" + bestKernelLowLevelHash) 
+
+    #save highLevelExpression
+    bestKernelHighLevelHash = getVariable(_explorationDir + "/bestkernel/" + currentMinKernel, "High-level hash:")
+    bestKernelHighLevelExpressionPath = find(bestKernelHighLevelHash, _explorationDir + "/" + _expression)
+    shutil.copy2(bestKernelHighLevelExpressionPath, _explorationDir + "/bestkernel/" + bestKernelHighLevelHash)
+
+    return
 """  
     print("Warning! findKernels is not tested yet!")
     _checkState()
