@@ -133,22 +133,22 @@ def run():
                     _prepareTuner(lowLevelPath,exploreStatsDict)
                     exit(0)
                     tStart=timeit.default_timer()
-#                   p = subprocess.Popen(['./lowLevelLift'], cwd=atfCcfgDir)
-#                   p.wait()
+                    p = subprocess.Popen(['./lowLevelLift'], cwd=atfCcfgDir)
+                    p.wait()
                     tStart=logTime(exploreStatsDict, tStart,'tuning')
-#                   
-#                   #addLExpression to the csv and move the contents over to the tmpCsv
-#                   #TODO we can't simply append the contents. We need to take care of differences in the header.
-#                   timesCsvFile = open(atfCcfgDir+'/times.csv','r')
-#                   timesCsvReader = csv.reader(timesCsvFile)
-#                                       
-#                   next(timesCsvReader) # skip header
-#                   for line in timesCsvReader:
-#                     line.insert(0,llrelPath)
-#                     tmpCsvWriter.writerow(line)
-#                   timesCsvFile.close()
+                    
+                    #addLExpression to the csv and move the contents over to the tmpCsv
+                    #TODO we can't simply append the contents. We need to take care of differences in the header.
+                    timesCsvFile = open(atfCcfgDir+'/times.csv','r')
+                    timesCsvReader = csv.reader(timesCsvFile)
+                                        
+                    next(timesCsvReader) # skip header
+                    for line in timesCsvReader:
+                      line.insert(0,llrelPath)
+                      tmpCsvWriter.writerow(line)
+                    timesCsvFile.close()
                     logTime(exploreStatsDict, tStart,'post-tuning')
-#                   
+                    
                     writeExploreStats(statsWriter,exploreStatsDict,t0)
                     
                 else:
