@@ -8,8 +8,8 @@ import calendar
 import csv
 import json
 import executionUtil as eu
+import timeit
 #lowLevelTuning is an execution module so we can use it as any other execution module using the executionModule api
-
 
 ### Module attributes ###
 #Note: Inside functions We can read these without any problems but if we want to assign them, we need to explicitly tell the function scope that this variable is not local.
@@ -100,8 +100,14 @@ def clean():
 #runs the exectution
 def run():
     _checkState()
+    #timing stuff
+    # run time stuff
+    statsCsvFile=open(_explorationDir+'/tuningStats.csv','w')
+    statsWriter = csv.DictWriter(statsCsvFile, ['expression','analyse expression','tuner code creation','tuner code compile','run script creation','tuning','post-tuning','total'])
+    statsWriter.writeheader()
     printBlue("\n[INFO] Tuning low level expressions with atf -- " )
-    
+
+
     #create atfCcfg dir
     atfCcfgDir = _explorationDir+'/atfCcfg'
     silentMkdir(atfCcfgDir)
@@ -121,28 +127,36 @@ def run():
                 llrelPath=llrelPath.strip('\n') #remove the newline
                 lowLevelPath=_explorationDir+'/'+llrelPath
                 if(os.path.isfile(lowLevelPath)):
+                    t0=timeit.default_timer()
+                    exploreStatsDict={"expression":llrelPath}
                     printBlue('[INFO] Creating Tunner of '+llrelPath)
-                    _prepareTuner(lowLevelPath)
+                    _prepareTuner(lowLevelPath,exploreStatsDict)
                     exit(0)
-                    p = subprocess.Popen(['./lowLevelLift'], cwd=atfCcfgDir)
-                    p.wait()
-                    
-                    #addLExpression to the csv and move the contents over to the tmpCsv
-                    #TODO we can't simply append the contents. We need to take care of differences in the header.
-                    timesCsvFile = open(atfCcfgDir+'/times.csv','r')
-                    timesCsvReader = csv.reader(timesCsvFile)
-                                        
-                    next(timesCsvReader) # skip header
-                    for line in timesCsvReader:
-                      line.insert(0,llrelPath)
-                      tmpCsvWriter.writerow(line)
-                    timesCsvFile.close()
+                    tStart=timeit.default_timer()
+#                   p = subprocess.Popen(['./lowLevelLift'], cwd=atfCcfgDir)
+#                   p.wait()
+                    tStart=logTime(exploreStatsDict, tStart,'tuning')
+#                   
+#                   #addLExpression to the csv and move the contents over to the tmpCsv
+#                   #TODO we can't simply append the contents. We need to take care of differences in the header.
+#                   timesCsvFile = open(atfCcfgDir+'/times.csv','r')
+#                   timesCsvReader = csv.reader(timesCsvFile)
+#                                       
+#                   next(timesCsvReader) # skip header
+#                   for line in timesCsvReader:
+#                     line.insert(0,llrelPath)
+#                     tmpCsvWriter.writerow(line)
+#                   timesCsvFile.close()
+                    logTime(exploreStatsDict, tStart,'post-tuning')
+#                   
+                    writeExploreStats(statsWriter,exploreStatsDict,t0)
                     
                 else:
                     warn('Not a file: "' + lowLevelPath+'"')
+        
     tmpCsvFile.close()
+    statsCsvFile.close()
     shutil.move(atfCcfgDir+'/tmp.csv',atfCcfgDir+'/times.csv')
-    
 
 #cleans the execution directories and runs the execution afterwards
 #Note: I'm not quite sure if we need a rerun function or if we should just always call clean before running. 
@@ -169,11 +183,14 @@ def requiredRewrites():
 
 
 ### private helper functions ###
-def _prepareTuner(lowLevelExpressionPath):
+def _prepareTuner(lowLevelExpressionPath,exploreStatsDict):
+    tStart=timeit.default_timer()
     #read json and extract tp informations including dependencies 
     tunerDir = _explorationDir+'/atfCcfg'
     params = _getTuningParameter(lowLevelExpressionPath)
-    dependencyTree=eu.makeDependencyTree(params)       
+    tStart=logTime(exploreStatsDict, tStart,'analyse expression')
+    
+    dependencyTree=eu.makeDependencyTree(params)
     
     #create Tuner code
     mainCpp = open(_atf+'/examples/lowLevelLift/src/main.cpp','w')
@@ -188,8 +205,13 @@ def _prepareTuner(lowLevelExpressionPath):
     mainCpp.write(')(cf);\n')
     mainCpp.write('}\n')
     mainCpp.close()
+    tStart=logTime(exploreStatsDict, tStart,'tuner code creation')
+    
     #start compiling atf. We can continue doing other stuff in this thread and wait for the compiler later on.
+    print('Hey get back to work! compiling...')
     p = subprocess.Popen([ _atf+'/build.sh' ])
+    p.wait()
+    tStart=logTime(exploreStatsDict, tStart,'tuner code compile')
     
     #create runScript code
     gsvars=eu.collectGsizes(dependencyTree)
@@ -197,31 +219,54 @@ def _prepareTuner(lowLevelExpressionPath):
     tpvars=eu.collectTpVars(dependencyTree)
     runScript = open(tunerDir+'/runScript.py','w')
  
-    runScript.write('#!/usr/bin/python3\n')
-    runScript.write('# generated by lowLevelTuning.py. Don\'t change this file, changes will be lost on the next run anyways.\n')
-    runScript.write('import subprocess\n')    
-    
-    runScript.write('p = subprocess.Popen([\n  "'+_liftScripts+'/KernelGenerator",\n')
-    runScript.write('  "--env", "'+_envConfPath+'",\n')
-    runScript.write('  "--gs", "'+ ','.join([v for v in gsvars]) +'",\n')
-    runScript.write('  "--ls", "'+ ','.join([v for v in lsvars]) +'",\n')
-    runScript.write('  "--vars", "1024,'+','.join([v for v in tpvars])+'",\n') #TODO problemsizes hardcoded!
-    runScript.write('  "'+lowLevelExpressionPath+'"\n])\n')
-    
-    runScript.write('exit(p.wait())\n')
-    runScript.close()
-    makeExecutable(tunerDir+'/runScript.py')
+    runScript.write(
+'''
+#!/usr/bin/python3
+# generated by lowLevelTuning.py. Don\'t change this file, changes will be lost on the next run anyways.
+import subprocess
+import timeit
+import csv
 
+kernelGenStats=open("{exploreDir}/kernelGenStats.csv","a")
+statsWriter = csv.DictWriter(kernelGenStats, ["expression","total"])
+tStart=timeit.default_timer()
+
+p = subprocess.Popen([
+	"{kernelgenPath}",
+	"--env", "{env}",
+	"--gs",  "{gsizes}",
+	"--ls",  "{lsizes}",
+	"--vars","1024,{vars}", #TODO problemsizes hardcoded!
+	"{llExpPath}"
+])
+rc=p.wait()
+statsWriter.writerow({{
+	"expression":"{llExpPath}",
+	"total":timeit.default_timer()-tStart
+}})
+kernelGenStats.close()
+exit(rc)
+'''[1:-1].format(
+	exploreDir=_explorationDir,
+	kernelgenPath=_liftScripts+'/KernelGenerator',
+	env=_envConfPath,
+	gsizes=','.join([v for v in gsvars]),
+	lsizes=','.join([v for v in lsvars]),
+	vars=','.join([v for v in tpvars]),
+	llExpPath=lowLevelExpressionPath
+)
+    )
+    runScript.close()
+    makeExecutable(tunerDir+"/runScript.py")
+    logTime(exploreStatsDict, tStart,"run script creation")
+    
     #init the times.csv
-    timesCsvFile = open(tunerDir+'/times.csv','w') #using w wil override the existing file if there was an existing file. That's exactly what we want.
+    timesCsvFile = open(tunerDir+"/times.csv","w") #using w wil override the existing file if there was an existing file. That's exactly what we want.
     #TODO Why does atf output time+6 values when we just tuned 3 values?
     #TODO header should depend on the values used for tuning.
     timesCsvFile.write('time,glsize0,glsize1,glsize2,lsize0,lsize1,lsize2')
     timesCsvFile.close()
     
-    print('Hey get back to work! compiling...')
-    #wait until the compiler has finished
-    p.wait()
     
     #move it over
     shutil.copy2(_tuner+'/lowLevelLift',tunerDir)
@@ -261,11 +306,13 @@ def _checkState():
 
 
 
+def logTime(exploreStatsDict, tStart,title):
+  exploreStatsDict[title] = timeit.default_timer()-tStart
+  return timeit.default_timer()
 
-
-
-
-
+def writeExploreStats(writer, exploreStatsDict,t0):
+	logTime(exploreStatsDict, t0, 'total')
+	writer.writerow(exploreStatsDict)
 
 
 ### More helper that should be located in some explorationUtil module

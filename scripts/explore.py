@@ -11,6 +11,7 @@ import calendar
 import csv
 import json
 import importlib
+import timeit
 
 #Which module to require depends on the used flag (--atf, --llatf, --harness)
 #import lowLevelTuning as executionModule
@@ -25,6 +26,12 @@ import importlib
 #       * ParameterRewrite settings need to be in LIFT/highLevel/
 #
 ######################################################################
+
+# explore time stuff
+t0=timeit.default_timer()
+tStart=t0
+exploreStatsHeader=[]
+exploreStats=[]
 
 ### ARGPARSER ########################################################
 parser = argparse.ArgumentParser( description='Lift exploration utility')
@@ -234,6 +241,19 @@ scriptsDir = lift + "/scripts/compiled_scripts"
 
 # HELPER FUNCTIONS #################################################
 #TODO move to explore util module
+
+def logTime(tStart,title):
+  exploreStats.append(timeit.default_timer()-tStart)
+  exploreStatsHeader.append(title)
+  return timeit.default_timer()
+
+def writeExploreStats():
+  with open(explorationDir+'/exploreStats.csv', 'w') as statsCsv:
+    logTime(t0,'total')
+    writer = csv.writer(statsCsv)
+    writer.writerow(exploreStatsHeader)
+    writer.writerow(exploreStats)
+    
 def printBlue( string ):
     print(bcolors.BLUE + string + bcolors.ENDC)
     return
@@ -305,16 +325,22 @@ def callExplorationStage(rewrite, args):
     subprocess.call([scriptsDir + "/" + rewrite, args])
 
 def highLevelRewrite():
+    tStart=timeit.default_timer()
     args = highLevelRewriteArgs + " " + lift + "/highLevel/" + expression
     callExplorationStage("HighLevelRewrite", args)
+    logTime(tStart,'highLevelRewrite')
 
 def memoryMappingRewrite():
+    tStart=timeit.default_timer()
     args = memoryMappingRewriteArgs + " " + expression
     callExplorationStage("MemoryMappingRewrite", args)
+    logTime(tStart,'MemoryMappingRewrite')
 
 def parameterRewrite():
+    tStart=timeit.default_timer()
     args = parameterRewriteArgs + " " + expression
     callExplorationStage("ParameterRewrite", args)
+    logTime(tStart,'ParameterRewrite')
 
 
 #TODO do we still need this?
@@ -532,8 +558,11 @@ def rewrite():
 
 def execute():
     printBlue("[INFO] Execute generated kernels")
+    tStart=timeit.default_timer()
     executionModule.run()
+    tStart=logTime(tStart,'run')
     executionModule.gatherTimes()
+    logTime(tStart,'gatherTimes')
     plot()
 
 
@@ -656,13 +685,20 @@ def setupModule(args):
     executionModule.init(json_envConfig,json_config,envConf,configPath)
 
 # START OF SCRIPT ##################################################  
+#append init time
+tStart=logTime(tStart,'init')
+
 if(args.clean): clean()
 else:
   setupModule(args)
   setupExploration()
-  if(args.highLevelRewrite): highLevelRewrite()
-  if(args.memoryMappingRewrite): memoryMappingRewrite()
-  if(args.parameterRewrite): parameterRewrite()
+  logTime(tStart,'setup')
+  if(args.highLevelRewrite):
+    highLevelRewrite()
+  if(args.memoryMappingRewrite):
+    memoryMappingRewrite()
+  if(args.parameterRewrite):
+    parameterRewrite()
   
 # if(args.runHarness): runHarness()
   if(args.gatherTimes): executionModule.gatherTimes()
@@ -678,3 +714,5 @@ else:
   if(args.findKernels): executionModule.findKernels()
 # if(args.gatherTimesAtf): gatherTimesAtf()
     
+
+writeExploreStats()
