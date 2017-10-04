@@ -707,7 +707,10 @@ else:
   if(args.execute): execute()
   if(args.removeBlacklist): removeBlacklist()
   if(args.rerun): rerun()
-  if(args.full): explore()
+  if(args.explore): explore()
+  if(args.full):
+    rewrite()
+    explore()
 # if(args.runAtf): runAtf()
 # if(args.executeAtf): runAtf()
 # if(args.fullAtf): exploreAtf()
